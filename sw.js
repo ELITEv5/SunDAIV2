@@ -1,6 +1,6 @@
 // pSunDAI V7 — Service Worker
 // Bump CACHE_VER when deploying a new IPFS CID so stale clients get fresh assets.
-const CACHE_VER = "psundai-v7-1";
+const CACHE_VER = "psundai-v7-2";
 const ASSETS = [
   "./",
   "./index.html",

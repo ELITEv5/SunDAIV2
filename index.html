@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>pSunDAI V7 — PulseChain CDP</title>
+<title>bSunDAI V7 — Base Chain CDP</title>
 <script src="ethers.umd.min.js"></script>
 <style>
   :root {
@@ -46,7 +46,7 @@
   .badge {
     font-size: .7rem; font-weight: 700; letter-spacing: .08em;
     padding: 2px 8px; border-radius: 20px;
-    background: linear-gradient(135deg, var(--amber), var(--ember));
+    background: linear-gradient(135deg, #1e62f5, #0a3ab5);
     color: #fff;
   }
   nav .spacer { flex: 1; }
@@ -104,7 +104,7 @@
   /* ── ORACLE PANEL ────────────────────────────────────────────────── */
   .oracle-grid {
     display: grid; grid-template-columns: 1fr 1fr;
-    gap: 10px; margin-bottom: 14px;
+    gap: 10px; margin-bottom: 10px;
   }
   .oracle-item { background: var(--surface); border-radius: 8px; padding: 10px 14px; }
   .oracle-item .label { font-size: .7rem; color: var(--muted); margin-bottom: 4px; }
@@ -115,17 +115,17 @@
   .conf-row { font-size: .78rem; color: var(--muted); margin-bottom: 8px; }
   .conf-row span { color: var(--amber); }
 
-  /* ── SPOT WARNING BANNER ─────────────────────────────────────────── */
-  #spotWarnBanner {
+  /* ── CHAINLINK WARNING BANNER ────────────────────────────────────── */
+  #clWarnBanner {
     display: none; border-radius: 8px; padding: 10px 14px;
     margin-bottom: 14px; font-size: .82rem;
   }
-  #spotWarnBanner.warn {
+  #clWarnBanner.warn {
     display: flex; align-items: center; gap: 10px;
     background: rgba(255,152,0,.12); border: 1px solid rgba(255,152,0,.4);
     color: var(--warn);
   }
-  #spotWarnBanner.danger {
+  #clWarnBanner.danger {
     display: flex; align-items: center; gap: 10px;
     background: rgba(244,67,54,.12); border: 1px solid rgba(244,67,54,.4);
     color: var(--danger);
@@ -146,6 +146,7 @@
     display: grid; grid-template-columns: repeat(3, 1fr);
     gap: 10px; margin-bottom: 16px;
   }
+  @media(max-width:520px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
   .stat-box {
     background: var(--surface); border-radius: 8px; padding: 12px;
     text-align: center;
@@ -223,6 +224,13 @@
   .auto-info p { font-size: .82rem; color: var(--muted); line-height: 1.5; }
   .auto-info .preview { font-size: .9rem; color: var(--gold); margin-top: 8px; }
 
+  /* ── APPROVAL NOTICE ─────────────────────────────────────────────── */
+  .approve-notice {
+    font-size: .78rem; color: var(--warn);
+    background: rgba(255,152,0,.08); border: 1px solid rgba(255,152,0,.25);
+    border-radius: 7px; padding: 8px 12px; margin-bottom: 10px;
+  }
+
   /* ── SIDE COLUMN ─────────────────────────────────────────────────── */
   .side-col { display: flex; flex-direction: column; gap: 16px; }
 
@@ -249,7 +257,13 @@
   .tool-btn:hover { border-color: var(--amber); }
   .tool-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
   .tool-input-row input { flex: 1; padding: 7px 10px; border-radius: 6px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: .82rem; outline: none; }
+  .tool-input-row input:focus { border-color: var(--amber); }
   .tool-input-row .tool-btn { width: auto; margin: 0; padding: 7px 14px; }
+  @media(max-width:520px) {
+    .tool-input-row { flex-direction: column; }
+    .tool-input-row input { width: 100%; }
+    .tool-input-row .tool-btn { width: 100%; text-align: center; }
+  }
 
   /* ── STATUS MESSAGES ─────────────────────────────────────────────── */
   #statusMsg {
@@ -285,6 +299,13 @@
   }
   .help-btn:hover { color: var(--gold); border-color: var(--amber); }
 
+  /* ── MOBILE NAV ──────────────────────────────────────────────────── */
+  @media(max-width:520px) {
+    nav { padding: 8px 12px; gap: 8px; }
+    .brand { font-size: 1rem; }
+    nav a.liq-link { display: none; }
+  }
+
   /* ── SCROLLBAR ───────────────────────────────────────────────────── */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
@@ -297,8 +318,8 @@
 <!-- NAV -->
 <nav>
   <img src="sundailogo.png" alt="SunDAI" class="logo">
-  <span class="brand">pSunDAI</span>
-  <span class="badge">PLS V7</span>
+  <span class="brand">bSunDAI</span>
+  <span class="badge">BASE V7</span>
   <div class="spacer"></div>
   <button class="help-btn" onclick="document.getElementById('modal').classList.add('open')">How it works</button>
   <a href="liquidations.html" class="liq-link">Vault Dashboard</a>
@@ -319,39 +340,48 @@
   <div>
     <!-- ORACLE PANEL -->
     <div class="panel" style="margin-bottom:16px">
-      <div class="panel-title">Oracle Status — PulseX 5-Pool TWAP</div>
+      <div class="panel-title">Oracle Status — Hybrid Chainlink + V3 TWAP</div>
 
       <div class="oracle-grid">
         <div class="oracle-item">
-          <div class="label">TWAP (Conservative)</div>
-          <div class="val gold" id="oTwap">—</div>
+          <div class="label">Committed Price</div>
+          <div class="val gold" id="oCommitted">—</div>
           <div class="sub">Used for mint / withdraw safety</div>
         </div>
         <div class="oracle-item">
-          <div class="label">Spot Median (5-Pool)</div>
-          <div class="val amber" id="oSpot">—</div>
-          <div class="sub" id="oSpotSub">PulseX real-time</div>
+          <div class="label">Chainlink Live</div>
+          <div class="val amber" id="oChainlink">—</div>
+          <div class="sub" id="oChainlinkSub">Aave oracle</div>
         </div>
         <div class="oracle-item">
-          <div class="label">TWAP vs Spot Divergence</div>
-          <div class="val" id="oDivergence">—</div>
-          <div class="sub" id="oDivSub">—</div>
+          <div class="label">V3 TWAP (30-min)</div>
+          <div class="val" id="oTWAP">—</div>
+          <div class="sub">3-pool WETH/USDC median</div>
         </div>
         <div class="oracle-item">
-          <div class="label">Oracle State</div>
-          <div class="val" id="oState">—</div>
-          <div class="sub" id="oStateSub">—</div>
+          <div class="label">Source / Divergence</div>
+          <div class="val" id="oSource">—</div>
+          <div class="sub" id="oSourceSub">—</div>
         </div>
       </div>
 
-      <div class="conf-row" id="oConfRow" style="display:none">
-        Confirmation in progress → target <span id="oTarget">—</span>, time remaining <span id="oConfTime">—</span>
+      <div class="oracle-grid" style="margin-bottom:0">
+        <div class="oracle-item">
+          <div class="label">Confirmation State</div>
+          <div class="val" id="oConfirmState">—</div>
+          <div class="sub" id="oConfirmSub">—</div>
+        </div>
+        <div class="oracle-item">
+          <div class="label">Warning Track</div>
+          <div class="val" id="oWarningState">—</div>
+          <div class="sub" id="oWarningSub">—</div>
+        </div>
       </div>
 
-      <!-- SPOT WARNING BANNER -->
-      <div id="spotWarnBanner">
-        <div class="pulse-dot" id="warnDot"></div>
-        <div id="warnText"></div>
+      <!-- CHAINLINK WARNING BANNER -->
+      <div id="clWarnBanner" style="margin-top:10px">
+        <div class="pulse-dot" id="clWarnDot"></div>
+        <div id="clWarnText"></div>
       </div>
     </div>
 
@@ -364,11 +394,11 @@
 
       <div class="stats-grid">
         <div class="stat-box">
-          <div class="s-label">Collateral (PLS)</div>
+          <div class="s-label">Collateral (ETH)</div>
           <div class="s-val gold" id="sColl">—</div>
         </div>
         <div class="stat-box">
-          <div class="s-label">Debt (pSunDAI)</div>
+          <div class="s-label">Debt (bSunDAI)</div>
           <div class="s-val amber" id="sDebt">—</div>
         </div>
         <div class="stat-box">
@@ -376,7 +406,7 @@
           <div class="s-val gold" id="sColUSD">—</div>
         </div>
         <div class="stat-box">
-          <div class="s-label">pSunDAI Balance</div>
+          <div class="s-label">bSunDAI Balance</div>
           <div class="s-val" id="sBalance">—</div>
         </div>
         <div class="stat-box">
@@ -414,76 +444,70 @@
       <!-- AUTO TAB -->
       <div class="tab-pane active" id="tab-auto">
         <div class="auto-info">
-          <p>Deposit native PLS and automatically mint pSunDAI at a safe 155% collateral ratio — in one click.</p>
-          <div class="preview" id="autoPreview">Enter PLS amount to preview</div>
+          <p>Deposit native ETH and automatically mint bSunDAI at a safe 155% collateral ratio — in one click.</p>
+          <div class="preview" id="autoPreview">Enter ETH amount to preview</div>
         </div>
-        <label>PLS Amount</label>
+        <label>ETH Amount</label>
         <div class="input-wrap">
           <input type="number" id="autoAmt" placeholder="0.0" oninput="previewAuto()" min="0" step="any">
-          <span class="input-unit">PLS</span>
+          <span class="input-unit">ETH</span>
         </div>
-        <div class="hint">You receive: ~<span id="autoMintPreview">0</span> pSunDAI · CR: 155%</div>
+        <div class="hint">You receive: ~<span id="autoMintPreview">0</span> bSunDAI · CR: 155%</div>
         <button class="btn btn-primary" onclick="doAutoMint()">1-Click Auto Borrow</button>
       </div>
 
       <!-- DEPOSIT TAB -->
       <div class="tab-pane" id="tab-deposit">
-        <label>Deposit native PLS</label>
+        <label>Deposit native ETH</label>
         <div class="input-wrap">
-          <input type="number" id="depPLSAmt" placeholder="0.0" min="0" step="any">
-          <span class="input-unit">PLS</span>
+          <input type="number" id="depETHAmt" placeholder="0.0" min="0" step="any">
+          <span class="input-unit">ETH</span>
         </div>
-        <button class="btn btn-primary" onclick="doDepositPLS()">Deposit PLS</button>
-        <div style="margin:14px 0;text-align:center;font-size:.75rem;color:var(--muted)">— or deposit WPLS —</div>
-        <label>Deposit WPLS (requires approval)</label>
+        <button class="btn btn-primary" onclick="doDepositETH()">Deposit ETH</button>
+        <div style="margin:14px 0;text-align:center;font-size:.75rem;color:var(--muted)">— or deposit WETH —</div>
+        <label>Deposit WETH (requires approval)</label>
         <div class="input-wrap">
-          <input type="number" id="depWPLSAmt" placeholder="0.0" min="0" step="any">
-          <span class="input-unit">WPLS</span>
+          <input type="number" id="depWETHAmt" placeholder="0.0" min="0" step="any">
+          <span class="input-unit">WETH</span>
         </div>
-        <div class="hint">WPLS balance: <span id="wplsBalance">—</span></div>
-        <button class="btn btn-secondary" onclick="doDepositWPLS()">Approve &amp; Deposit WPLS</button>
+        <button class="btn btn-secondary" onclick="doDepositWETH()">Approve &amp; Deposit WETH</button>
       </div>
 
       <!-- MINT TAB -->
       <div class="tab-pane" id="tab-mint">
-        <label>Mint pSunDAI</label>
+        <label>Mint bSunDAI</label>
         <div class="input-wrap">
           <button class="max-btn" onclick="setMaxMint()">MAX</button>
           <input type="number" id="mintAmt" placeholder="0.0" oninput="previewMint()" min="0" step="any">
-          <span class="input-unit" style="right:12px">pSunDAI</span>
+          <span class="input-unit" style="right:12px">bSunDAI</span>
         </div>
         <div class="hint">After mint CR: <span id="afterMintCR">—</span></div>
-        <button class="btn btn-primary" onclick="doMint()">Mint pSunDAI</button>
+        <button class="btn btn-primary" onclick="doMint()">Mint bSunDAI</button>
       </div>
 
       <!-- REPAY TAB -->
       <div class="tab-pane" id="tab-repay">
-        <label>Repay pSunDAI</label>
+        <div class="approve-notice">Repaying bSunDAI requires a one-time approval — click Repay and approve in MetaMask first, then confirm again to repay.</div>
+        <label>Repay bSunDAI</label>
         <div class="input-wrap">
           <button class="max-btn" onclick="setMaxRepay()">MAX</button>
           <input type="number" id="repayAmt" placeholder="0.0" min="0" step="any">
-          <span class="input-unit" style="right:12px">pSunDAI</span>
+          <span class="input-unit" style="right:12px">bSunDAI</span>
         </div>
-        <div class="hint">pSunDAI balance: <span id="repayBalHint">—</span></div>
+        <div class="hint">bSunDAI balance: <span id="repayBalHint">—</span></div>
         <button class="btn btn-primary" onclick="doRepay()">Repay</button>
-        <button class="btn btn-secondary" onclick="doRepayAndWithdraw()">Repay All &amp; Withdraw PLS</button>
+        <button class="btn btn-secondary" onclick="doRepayAll()">Repay All &amp; Withdraw ETH</button>
       </div>
 
       <!-- WITHDRAW TAB -->
       <div class="tab-pane" id="tab-withdraw">
-        <label>Withdraw PLS (native)</label>
+        <label>Withdraw ETH</label>
         <div class="input-wrap">
-          <input type="number" id="withPLSAmt" placeholder="0.0" min="0" step="any">
-          <span class="input-unit">PLS</span>
+          <input type="number" id="withETHAmt" placeholder="0.0" min="0" step="any">
+          <span class="input-unit">ETH</span>
         </div>
-        <button class="btn btn-primary" onclick="doWithdrawPLS()">Withdraw PLS</button>
-        <div style="margin:14px 0;text-align:center;font-size:.75rem;color:var(--muted)">— or withdraw WPLS —</div>
-        <label>Withdraw WPLS</label>
-        <div class="input-wrap">
-          <input type="number" id="withWPLSAmt" placeholder="0.0" min="0" step="any">
-          <span class="input-unit">WPLS</span>
-        </div>
-        <button class="btn btn-secondary" onclick="doWithdrawWPLS()">Withdraw WPLS</button>
+        <button class="btn btn-primary" onclick="doWithdrawETH()">Withdraw ETH</button>
+        <button class="btn btn-secondary" onclick="setMaxWithdraw()">Withdraw Max Safe</button>
       </div>
 
       <div id="statusMsg"></div>
@@ -535,15 +559,15 @@
     <div class="panel">
       <div class="panel-title">Protocol Tools</div>
       <button class="tool-btn" onclick="doReconcile()">Reconcile surplus → bad debt</button>
-      <button class="tool-btn" onclick="doPoke()">Poke oracle (advance state machine)</button>
-      <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Clear zombie vault (caller gets PLS free):</div>
+      <button class="tool-btn" onclick="doRefreshOracle()">Refresh oracle (advance state machine)</button>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Clear zombie vault (caller gets ETH free):</div>
       <div class="tool-input-row">
         <input type="text" id="badDebtAddr" placeholder="0x vault owner">
         <button class="tool-btn" onclick="doClearBadDebt()">Clear</button>
       </div>
-      <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Settle bad debt (burn your pSunDAI):</div>
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px">Settle bad debt (burn your bSunDAI):</div>
       <div class="tool-input-row">
-        <input type="number" id="settleAmt" placeholder="amount pSunDAI">
+        <input type="number" id="settleAmt" placeholder="amount bSunDAI">
         <button class="tool-btn" onclick="doSettle()">Settle</button>
       </div>
     </div>
@@ -553,9 +577,9 @@
       <div class="panel-title">Vault Health Zones</div>
       <div style="font-size:.78rem;color:var(--muted);line-height:1.7">
         <div><span style="color:var(--safe)">▲ 150%+</span> — Safe. Can mint &amp; withdraw freely.</div>
-        <div><span style="color:var(--warn)">◆ 110–150%</span> — Cannot mint. Add collateral.</div>
-        <div><span style="color:var(--danger)">▼ &lt;110%</span> — Liquidatable. Bonus grows 2% → 5% over 3 hours from when auction clock starts.</div>
-        <div style="margin-top:10px;color:var(--muted)">Target: 175%+ to absorb PLS volatility comfortably.</div>
+        <div><span style="color:var(--warn)">◆ 110–150%</span> — Cannot mint. Add collateral or repay. Redeemable.</div>
+        <div><span style="color:var(--danger)">▼ &lt;110%</span> — Liquidatable. Bonus decays 10% → 2% over 3 hours. First mover wins.</div>
+        <div style="margin-top:10px;color:var(--muted)">All vaults are redeemable against at oracle price — no CR filter. Target 175%+ to absorb ETH volatility.</div>
       </div>
     </div>
   </div>
@@ -565,45 +589,41 @@
 <div id="modal">
   <div class="modal-box">
     <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">✕ Close</button>
-    <h2>How pSunDAI Works</h2>
+    <h2>How bSunDAI Works</h2>
 
-    <h3>1. What is pSunDAI?</h3>
-    <p>pSunDAI is a PLS-collateralized stable asset on PulseChain. Lock WPLS, mint pSunDAI (targeting $1 USD). No admin, no governance, fully autonomous once deployed.</p>
+    <h3>1. What is bSunDAI?</h3>
+    <p>bSunDAI is an ETH-collateralized stable asset on Base Chain. Lock ETH, mint bSunDAI (targeting $1 USD). No admin, no governance, fully autonomous once deployed.</p>
 
-    <h3>2. Deposit PLS → Mint pSunDAI</h3>
-    <p>Deposit native PLS directly (auto-wraps to WPLS). Minimum 150% collateral ratio to mint. Auto mode mints at 155% in one transaction.</p>
+    <h3>2. Deposit ETH → Mint bSunDAI</h3>
+    <p>Deposit native ETH (auto-wraps to WETH internally). Minimum 150% collateral ratio to mint. Auto mode mints at 155% in one transaction.</p>
 
-    <h3>3. Collateral Ratio (CR)</h3>
-    <p>CR = (PLS collateral × PLS price) ÷ pSunDAI debt × 100%. Stay above 150% to mint, above 110% to avoid liquidation. Target 175%+ for safety.</p>
+    <h3>3. Repay requires approval</h3>
+    <p>Unlike pSunDAI, bSunDAI repayment requires a standard ERC20 approval first. Click Repay and approve in MetaMask, then confirm again to complete the repay.</p>
 
-    <h3>4. Oracle: PulseX 5-Pool TWAP + Spot</h3>
+    <h3>4. Oracle: Hybrid Chainlink + V3 TWAP</h3>
     <ul>
-      <li><strong>TWAP (Conservative):</strong> 5-pool PulseX median with asymmetric stepping — slow to fall (4h confirmation), fast to rise (30min). Used for minting and withdrawal safety checks.</li>
-      <li><strong>Spot Median:</strong> Real-time 5-pool price. Used for liquidation eligibility when a real crash is confirmed.</li>
-      <li><strong>Spot Warning Track:</strong> If spot stays 5%+ below TWAP for 30 continuous minutes, spot liquidation activates. Flash crashes clear in minutes; real crashes don't.</li>
+      <li><strong>Committed Price:</strong> Steps conservatively — accepts small moves (≤2% down, ≤5% up) instantly. Larger moves require confirmation (4h down, 30min up). Used for minting and withdrawal safety.</li>
+      <li><strong>Chainlink Warning Track:</strong> If Chainlink stays 3%+ below committed price for 30 continuous minutes, liquidations switch to live Chainlink. Flash crashes recover in minutes; real crashes don't.</li>
     </ul>
 
-    <h3>5. Liquidations</h3>
-    <p>Vaults below 110% CR can be liquidated. Bonus <strong>grows from 2% to 5%</strong> over 3 hours after the auction clock starts. Call <code>markUndercollateralized(addr)</code> to start the clock, then liquidate later for higher bonus. See <a href="liquidations.html" style="color:var(--amber)">Vault Dashboard</a> to scan and liquidate.</p>
+    <h3>5. Liquidations (Inverted Dutch Auction)</h3>
+    <p>Vaults below 110% CR can be liquidated. Bonus <strong>starts at 10% and decays to 2%</strong> over 3 hours. First mover wins — act immediately for the highest bonus. Requires bSunDAI approval before liquidating.</p>
 
-    <h3>6. Repay &amp; Withdraw</h3>
-    <p>Repay pSunDAI to reduce debt. Withdraw PLS as native or WPLS. 5-minute cooldown after deposit. "Repay All &amp; Withdraw" closes position in one transaction.</p>
+    <h3>6. Redemptions</h3>
+    <p>Any holder can redeem bSunDAI for $1 of ETH from any vault at oracle price. 0.5% fee stays with the vault owner. This enforces the $1 floor — if bSunDAI ever trades below $1, arbitrageurs buy and redeem. See <a href="liquidations.html" style="color:var(--amber)">Vault Dashboard</a> for the Redeem tab.</p>
 
-    <h3>7. Spot Liquidation (Dual-Price)</h3>
-    <p>If the spot warning has been active for 30+ minutes, liquidations use real-time spot price instead of conservative TWAP. A flash crash lasts minutes — spot recovers before 30 min, no liquidations triggered. A real crash stays down — spot confirms after 30 min.</p>
-
-    <h3>8. Emergency Functions</h3>
+    <h3>7. Emergency Functions</h3>
     <ul>
       <li><strong>Emergency Unlock:</strong> Zero debt + last deposit older than 30 days → withdraw regardless of oracle.</li>
-      <li><strong>Emergency Repay / Withdraw:</strong> If oracle is dead for 7+ days, repay and withdraw without price checks.</li>
+      <li><strong>Emergency Repay / Withdraw:</strong> If oracle is catastrophically failed for 7+ days.</li>
     </ul>
 
-    <h3>9. Protocol Tools (anyone can call)</h3>
+    <h3>8. Protocol Tools (anyone can call)</h3>
     <ul>
       <li><strong>Reconcile:</strong> Net surplus buffer against bad debt on-chain.</li>
-      <li><strong>Poke:</strong> Advance oracle state machine (rate-limited to once per 30 min).</li>
-      <li><strong>Clear Bad Debt:</strong> Seize underwater vault — caller keeps all PLS free.</li>
-      <li><strong>Settle Debt:</strong> Burn your pSunDAI to cancel accumulated bad debt.</li>
+      <li><strong>Refresh Oracle:</strong> Advance oracle state machine.</li>
+      <li><strong>Clear Bad Debt:</strong> Seize underwater vault — caller keeps all ETH free.</li>
+      <li><strong>Settle Debt:</strong> Burn your bSunDAI to cancel accumulated bad debt.</li>
     </ul>
   </div>
 </div>
@@ -613,18 +633,18 @@
 const VAULT_ADDR  = "0x0000000000000000000000000000000000000000"; // TBD
 const TOKEN_ADDR  = "0x0000000000000000000000000000000000000000"; // TBD
 const ORACLE_ADDR = "0x0000000000000000000000000000000000000000"; // TBD
-const CHAIN_ID    = 369n;
-const CHAIN_HEX   = "0x171";
-const CHAIN_NAME  = "PulseChain";
+const CHAIN_ID    = 8453n;
+const CHAIN_HEX   = "0x2105";
+const CHAIN_NAME  = "Base";
 
 // ── ABIS ──────────────────────────────────────────────────────────────────────
 let VAULT_ABI, TOKEN_ABI, ORACLE_ABI;
 
 async function loadABIs() {
   [VAULT_ABI, TOKEN_ABI, ORACLE_ABI] = await Promise.all([
-    fetch("psundai-vault-v7-abi.json").then(r => r.json()),
-    fetch("psundai-token-v7-abi.json").then(r => r.json()),
-    fetch("psundai-oracle-v7-abi.json").then(r => r.json()),
+    fetch("sundai-vault-v7-abi.json").then(r => r.json()),
+    fetch("sundai-token-v7-abi.json").then(r => r.json()),
+    fetch("sundai-oracle-v7-abi.json").then(r => r.json()),
   ]);
 }
 
@@ -637,7 +657,6 @@ const ZERO = 0n;
 const fmt18 = v => {
   const n = Number(ethers.formatUnits(v, 18));
   if (n === 0) return "0";
-  if (n >= 1e9) return (n / 1e9).toFixed(2) + "B";
   if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
   if (n >= 1000) return n.toLocaleString("en", { maximumFractionDigits: 2 });
   if (n >= 1) return n.toFixed(4);
@@ -651,12 +670,10 @@ const fmtUSD = v => {
   return "$" + n.toFixed(2);
 };
 
-// PLS price is tiny USD value
-const fmtPLSPrice = v => {
+const fmtETHPrice = v => {
   const n = Number(ethers.formatUnits(v, 18));
-  if (n >= 1) return "$" + n.toFixed(4);
-  if (n >= 0.001) return "$" + n.toFixed(6);
-  return "$" + n.toFixed(8);
+  if (n >= 1000) return "$" + n.toLocaleString("en", { maximumFractionDigits: 0 });
+  return "$" + n.toFixed(2);
 };
 
 const fmtCR = v => {
@@ -702,7 +719,6 @@ const fmtSecs = s => {
 
   function draw() {
     ctx.clearRect(0, 0, W, H);
-    // radial corona
     const grd = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*.6);
     grd.addColorStop(0, "rgba(245,200,66,.04)");
     grd.addColorStop(.5,"rgba(200,106,16,.02)");
@@ -750,8 +766,19 @@ async function connectWallet() {
           params: [{ chainId: CHAIN_HEX }]
         });
         provider = new ethers.BrowserProvider(window.ethereum);
-      } catch (e) {
-        return showStatus(`Please switch to ${CHAIN_NAME} (chain ${CHAIN_ID})`, "err");
+      } catch(e) {
+        try {
+          await provider.send("wallet_addEthereumChain", [{
+            chainId: CHAIN_HEX,
+            chainName: "Base",
+            nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+            rpcUrls: ["https://mainnet.base.org"],
+            blockExplorerUrls: ["https://basescan.org"]
+          }]);
+          provider = new ethers.BrowserProvider(window.ethereum);
+        } catch(_) {
+          return showStatus(`Please switch to ${CHAIN_NAME} (chain ${CHAIN_ID})`, "err");
+        }
       }
     }
     signer  = await provider.getSigner();
@@ -777,56 +804,57 @@ async function refreshAll() {
 
 async function refreshOracle() {
   try {
-    const [currentPrice, marketPrice, divergenceBps, inConfirmation,
-           confirmTimeRemaining, targetPrice, spotWarningActive, spotLiquidationEnabled]
-      = await oracle.getPriceStatus();
+    const [priceStatus, sourceStatus, warnElapsed, liqEnabled] = await Promise.all([
+      oracle.getPriceStatus(),
+      oracle.getSourceStatus(),
+      oracle.chainlinkWarningElapsed(),
+      oracle.isChainlinkLiquidationEnabled(),
+    ]);
 
-    const twapStr  = fmtPLSPrice(currentPrice);
-    const spotStr  = marketPrice > ZERO ? fmtPLSPrice(marketPrice) : "—";
-    const divBps   = Number(divergenceBps);
+    const [currentPrice, rawPrice, targetPrice, inConfirmation,
+           confirmStart, isStepping, warningActive, liqActiveFlag] = priceStatus;
 
-    document.getElementById("oTwap").textContent = twapStr;
-    document.getElementById("oSpot").textContent = spotStr;
-    document.getElementById("oDivergence").textContent = (divBps / 100).toFixed(2) + "%";
-    document.getElementById("oDivSub").textContent = divBps > 500
-      ? "⚠ Large divergence"
-      : divBps > 300 ? "Moderate divergence" : "Normal";
+    const committedStr = currentPrice > ZERO ? fmtETHPrice(currentPrice) : "—";
+    const clPrice = sourceStatus.chainlinkPrice || 0n;
+    const twapPrice = sourceStatus.twapPrice || 0n;
 
-    let stateStr = "Healthy";
-    let stateSub = "TWAP current";
-    if (inConfirmation) { stateStr = "Confirming"; stateSub = "Price update pending"; }
-    if (spotLiquidationEnabled) { stateStr = "Spot Liq Active"; stateSub = "Liquidations use spot"; }
-    document.getElementById("oState").textContent = stateStr;
-    document.getElementById("oStateSub").textContent = stateSub;
-    document.getElementById("oState").className =
-      "val " + (spotLiquidationEnabled ? "danger" : inConfirmation ? "amber" : "safe");
+    document.getElementById("oCommitted").textContent = committedStr;
+    document.getElementById("oChainlink").textContent = clPrice > ZERO ? fmtETHPrice(clPrice) : "—";
+    document.getElementById("oTWAP").textContent = twapPrice > ZERO ? fmtETHPrice(twapPrice) : "—";
 
-    const confRow = document.getElementById("oConfRow");
+    const srcMap = ["—", "CHAINLINK", "TWAP", "CL + TWAP"];
+    const srcNum = Number(sourceStatus.source || 0);
+    document.getElementById("oSource").textContent = srcMap[srcNum] || "—";
+    const divBps = Number(sourceStatus.divergenceBps || 0n);
+    document.getElementById("oSourceSub").textContent = divBps > 0 ? (divBps / 100).toFixed(1) + "% divergence" : "Low divergence";
+
     if (inConfirmation) {
-      confRow.style.display = "block";
-      document.getElementById("oTarget").textContent = fmtPLSPrice(targetPrice);
-      document.getElementById("oConfTime").textContent = fmtSecs(Number(confirmTimeRemaining));
+      document.getElementById("oConfirmState").textContent = "CONFIRMING";
+      document.getElementById("oConfirmSub").textContent = "Target: " + (targetPrice > ZERO ? fmtETHPrice(targetPrice) : "—");
+    } else if (isStepping) {
+      document.getElementById("oConfirmState").textContent = "STEPPING";
+      document.getElementById("oConfirmSub").textContent = "Toward: " + (targetPrice > ZERO ? fmtETHPrice(targetPrice) : "—");
     } else {
-      confRow.style.display = "none";
+      document.getElementById("oConfirmState").textContent = "NORMAL";
+      document.getElementById("oConfirmSub").textContent = "No confirmation pending";
     }
 
-    // Spot warning banner
-    const banner = document.getElementById("spotWarnBanner");
-    const warnDot = document.getElementById("warnDot");
-    const warnText = document.getElementById("warnText");
-    if (spotLiquidationEnabled) {
-      banner.className = "danger";
-      warnDot.className = "pulse-dot red";
-      const elapsed = await oracle.spotWarningElapsed();
-      warnText.innerHTML = `<strong>SPOT LIQUIDATION ACTIVE</strong> — Spot has been 5%+ below TWAP for ${fmtSecs(Number(elapsed))}. Vaults are now liquidatable at spot price.`;
-    } else if (spotWarningActive) {
-      banner.className = "warn";
-      warnDot.className = "pulse-dot amber";
-      const elapsed = await oracle.spotWarningElapsed();
-      const remaining = 1800 - Number(elapsed);
-      warnText.innerHTML = `<strong>SPOT WARNING ACTIVE</strong> — Spot 5%+ below TWAP for ${fmtSecs(Number(elapsed))}. Liquidation enables in ${fmtSecs(remaining > 0 ? remaining : 0)}.`;
+    const elapsed = Number(warnElapsed || 0n);
+    const mins = Math.floor(elapsed / 60), secs = elapsed % 60;
+
+    if (liqEnabled || liqActiveFlag) {
+      document.getElementById("oWarningState").textContent = "LIQ ACTIVE";
+      document.getElementById("oWarningSub").textContent = "Using Chainlink for liquidations";
+      showClWarning("danger", `Chainlink liquidation mode active. Committed: ${committedStr} | Live: ${clPrice > ZERO ? fmtETHPrice(clPrice) : "—"}`);
+    } else if (warningActive) {
+      const remain = Math.max(0, 30 * 60 - elapsed);
+      document.getElementById("oWarningState").textContent = mins + "m " + secs + "s";
+      document.getElementById("oWarningSub").textContent = Math.floor(remain/60) + "m to liq unlock";
+      showClWarning("warn", `Chainlink ${(divBps/100).toFixed(1)}% below committed price for ${mins}m ${secs}s. Liquidation mode unlocks in ${fmtSecs(remain)} if price does not recover.`);
     } else {
-      banner.className = "";
+      document.getElementById("oWarningState").textContent = "INACTIVE";
+      document.getElementById("oWarningSub").textContent = "Chainlink tracking committed";
+      document.getElementById("clWarnBanner").className = "";
     }
 
     // Oracle bar
@@ -834,16 +862,16 @@ async function refreshOracle() {
     const oLabel = document.getElementById("obLabel");
     const oPrice = document.getElementById("obPrice");
     const oSub = document.getElementById("obSub");
-    oPrice.textContent = twapStr;
-    if (spotLiquidationEnabled) {
+    oPrice.textContent = currentPrice > ZERO ? fmtETHPrice(currentPrice) : "—";
+    if (liqEnabled || liqActiveFlag) {
       oBar.className = "ob-dot red";
-      oLabel.textContent = "Spot Liquidation Active";
-      oSub.textContent = "Spot: " + spotStr;
-    } else if (spotWarningActive) {
+      oLabel.textContent = "Chainlink Liq Active";
+      oSub.textContent = "";
+    } else if (warningActive) {
       oBar.className = "ob-dot amber";
-      oLabel.textContent = "Spot Warning";
-      oSub.textContent = "Spot: " + spotStr;
-    } else if (inConfirmation) {
+      oLabel.textContent = "Chainlink Warning";
+      oSub.textContent = mins + "m elapsed";
+    } else if (inConfirmation || isStepping) {
       oBar.className = "ob-dot amber";
       oLabel.textContent = "Oracle Confirming";
       oSub.textContent = "";
@@ -857,32 +885,30 @@ async function refreshOracle() {
   }
 }
 
+function showClWarning(cls, msg) {
+  const banner = document.getElementById("clWarnBanner");
+  banner.className = cls;
+  const dot = document.getElementById("clWarnDot");
+  dot.className = "pulse-dot " + (cls === "danger" ? "red" : "amber");
+  document.getElementById("clWarnText").textContent = msg;
+}
+
 async function refreshVault() {
   if (!account) return;
   try {
     const [collateral, debt, collateralUSD, ratio, mintable, oracleHealthy,
-           price, systemRatio, spotLiquidationActive] = await vault.vaultInfo(account);
+           price, systemRatio] = await vault.vaultInfo(account);
 
     const tokenBal = await token.balanceOf(account);
     const repayNeeded = await vault.repayToHealth(account);
 
-    // Try WPLS balance (wpls address from vault)
-    try {
-      const wplsAddr = await vault.wpls();
-      const wplsContract = new ethers.Contract(wplsAddr, [
-        {"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}
-      ], provider);
-      const wplsBal = await wplsContract.balanceOf(account);
-      document.getElementById("wplsBalance").textContent = fmt18(wplsBal) + " WPLS";
-    } catch(_) {}
-
-    document.getElementById("sColl").textContent   = fmt18(collateral) + " PLS";
-    document.getElementById("sDebt").textContent   = fmt18(debt) + " pSunDAI";
+    document.getElementById("sColl").textContent   = fmt18(collateral) + " ETH";
+    document.getElementById("sDebt").textContent   = fmt18(debt) + " bSunDAI";
     document.getElementById("sColUSD").textContent = fmtUSD(collateralUSD);
-    document.getElementById("sBalance").textContent= fmt18(tokenBal) + " pSunDAI";
-    document.getElementById("sMintable").textContent = fmt18(mintable) + " pSunDAI";
+    document.getElementById("sBalance").textContent= fmt18(tokenBal) + " bSunDAI";
+    document.getElementById("sMintable").textContent = fmt18(mintable) + " bSunDAI";
     document.getElementById("sRepayToSafe").textContent =
-      repayNeeded > ZERO ? fmt18(repayNeeded) + " pSunDAI" : "Safe";
+      repayNeeded > ZERO ? fmt18(repayNeeded) + " bSunDAI" : "Safe";
 
     const crStr = fmtCR(ratio);
     document.getElementById("sCR").textContent = crStr;
@@ -890,10 +916,9 @@ async function refreshVault() {
     document.getElementById("sCR").className = "sr-val " + col;
     document.getElementById("sDebt").className = "s-val " + (debt > ZERO ? "amber" : "gold");
 
-    // CR bar
     let pct = 0;
     if (ratio !== ethers.MaxUint256 && ratio <= 9999n) {
-      pct = Math.min(Number(ratio) / 2.5, 100); // 250% = 100%
+      pct = Math.min(Number(ratio) / 2.5, 100);
     } else {
       pct = 100;
     }
@@ -902,7 +927,7 @@ async function refreshVault() {
     const n = Number(ratio);
     fill.style.background = n < 110 ? "var(--danger)" : n < 150 ? "var(--warn)" : "var(--safe)";
 
-    document.getElementById("repayBalHint").textContent = fmt18(tokenBal) + " pSunDAI";
+    document.getElementById("repayBalHint").textContent = fmt18(tokenBal) + " bSunDAI";
   } catch(e) {
     console.error("refreshVault:", e);
   }
@@ -920,29 +945,29 @@ async function refreshSystem() {
       vault.DEBT_CEILING(),
     ]);
 
-    document.getElementById("sysTotColl").textContent = fmt18(totColl) + " PLS";
-    document.getElementById("sysTotDebt").textContent = fmt18(totDebt) + " pSunDAI";
+    document.getElementById("sysTotColl").textContent = fmt18(totColl) + " ETH";
+    document.getElementById("sysTotDebt").textContent = fmt18(totDebt) + " bSunDAI";
 
     const healthN = Number(health);
     const healthEl = document.getElementById("sysHealth");
     healthEl.textContent = healthN > 9999 ? "∞" : healthN.toFixed(1) + "%";
     healthEl.className = "sr-val " + (healthN > 175 ? "green" : healthN > 130 ? "amber" : "red");
 
-    document.getElementById("sysSurplus").textContent = fmt18(surplus) + " pSunDAI";
+    document.getElementById("sysSurplus").textContent = fmt18(surplus) + " bSunDAI";
 
     const badEl = document.getElementById("sysBadDebt");
-    badEl.textContent = fmt18(badDebt) + " pSunDAI";
+    badEl.textContent = fmt18(badDebt) + " bSunDAI";
     badEl.className = "sr-val " + (badDebt > ZERO ? "red" : "green");
 
     const eqEl = document.getElementById("sysEquity");
     const eqN = Number(ethers.formatUnits(equity >= 0n ? equity : -equity, 18));
-    eqEl.textContent = (equity >= 0n ? "+" : "-") + eqN.toFixed(2) + " pSunDAI";
+    eqEl.textContent = (equity >= 0n ? "+" : "-") + eqN.toFixed(2) + " bSunDAI";
     eqEl.className = "sr-val " + (equity >= 0n ? "green" : "red");
 
     const pct = ceiling > ZERO ? Number((totDebt * 100n) / ceiling) : 0;
     document.getElementById("debtCeilPct").textContent = pct.toFixed(1) + "%";
     document.getElementById("debtCeilAbs").textContent =
-      fmt18(totDebt) + " / " + fmt18(ceiling) + " pSunDAI";
+      fmt18(totDebt) + " / " + fmt18(ceiling) + " bSunDAI";
     const bar = document.getElementById("debtCeilBar");
     bar.style.width = Math.min(pct, 100) + "%";
     bar.style.background = pct > 90 ? "var(--danger)" : pct > 70 ? "var(--warn)" : "var(--safe)";
@@ -951,22 +976,22 @@ async function refreshSystem() {
   }
 }
 
-// ── AUTO MINT PREVIEW ─────────────────────────────────────────────────────────
+// ── PREVIEWS ──────────────────────────────────────────────────────────────────
 async function previewAuto() {
   const amt = parseFloat(document.getElementById("autoAmt").value) || 0;
   if (amt <= 0 || !oracle) {
-    document.getElementById("autoPreview").textContent = "Enter PLS amount to preview";
+    document.getElementById("autoPreview").textContent = "Enter ETH amount to preview";
     document.getElementById("autoMintPreview").textContent = "0";
     return;
   }
   try {
-    const [twap] = await oracle.getPriceStatus();
-    const plsIn = ethers.parseUnits(amt.toString(), 18);
-    const valueUSD = (plsIn * twap) / ethers.parseUnits("1", 18);
+    const [currentPrice] = await oracle.getPriceStatus();
+    const ethIn = ethers.parseUnits(amt.toString(), 18);
+    const valueUSD = (ethIn * currentPrice) / ethers.parseUnits("1", 18);
     const mintAmt = (valueUSD * 100n) / 155n;
     document.getElementById("autoMintPreview").textContent = fmt18(mintAmt);
     document.getElementById("autoPreview").textContent =
-      `Deposit ${amt} PLS → mint ~${fmt18(mintAmt)} pSunDAI at 155% CR`;
+      `Deposit ${amt} ETH → mint ~${fmt18(mintAmt)} bSunDAI at 155% CR`;
   } catch(_) {}
 }
 
@@ -975,7 +1000,7 @@ async function previewMint() {
   try {
     const amt = parseFloat(document.getElementById("mintAmt").value) || 0;
     if (amt <= 0) { document.getElementById("afterMintCR").textContent = "—"; return; }
-    const [collateral, debt,,, ,, price] = await vault.vaultInfo(account);
+    const [collateral, debt,,,,,price] = await vault.vaultInfo(account);
     const newDebt = debt + ethers.parseUnits(amt.toString(), 18);
     if (newDebt === ZERO) { document.getElementById("afterMintCR").textContent = "∞"; return; }
     const newCR = (collateral * price * 100n) / (newDebt * ethers.parseUnits("1", 18));
@@ -986,8 +1011,8 @@ async function previewMint() {
 async function setMaxMint() {
   if (!vault || !account) return;
   try {
-    const m = await vault.maxMint(account);
-    document.getElementById("mintAmt").value = ethers.formatUnits(m, 18);
+    const [,,,,mintable] = await vault.vaultInfo(account);
+    document.getElementById("mintAmt").value = ethers.formatUnits(mintable, 18);
     await previewMint();
   } catch(_) {}
 }
@@ -1002,6 +1027,21 @@ async function setMaxRepay() {
   } catch(_) {}
 }
 
+async function setMaxWithdraw() {
+  if (!vault || !account) return;
+  try {
+    const [currentPrice] = await oracle.getPriceStatus();
+    const [collateral, debt] = await vault.vaultInfo(account);
+    if (debt === ZERO) {
+      document.getElementById("withETHAmt").value = ethers.formatUnits(collateral, 18);
+    } else {
+      const requiredColl = (debt * 150n * ethers.parseUnits("1", 18)) / (currentPrice * 100n);
+      const maxWD = collateral > requiredColl ? collateral - requiredColl : ZERO;
+      document.getElementById("withETHAmt").value = ethers.formatUnits(maxWD * 999n / 1000n, 18);
+    }
+  } catch(_) {}
+}
+
 // ── STATUS ────────────────────────────────────────────────────────────────────
 function showStatus(msg, type) {
   const el = document.getElementById("statusMsg");
@@ -1010,128 +1050,139 @@ function showStatus(msg, type) {
   if (type === "ok") setTimeout(() => { el.className = ""; }, 5000);
 }
 
-// ── ENSURE WALLET ─────────────────────────────────────────────────────────────
 function ensureWallet() {
   if (!signer) { showStatus("Connect wallet first", "err"); return false; }
   return true;
 }
 
+// ── APPROVAL HELPER ───────────────────────────────────────────────────────────
+async function ensureApproval(amount) {
+  const allowance = await token.allowance(account, VAULT_ADDR);
+  if (allowance < amount) {
+    showStatus("Approving bSunDAI…", "wait");
+    const tx = await token.approve(VAULT_ADDR, amount * 10n);
+    showStatus("Pending approval: " + tx.hash.slice(0,10) + "…", "wait");
+    await tx.wait();
+    showStatus("Approved ✓", "ok");
+  }
+}
+
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
 async function doAutoMint() {
   if (!ensureWallet()) return;
-  const amt = document.getElementById("autoAmt").value;
-  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter PLS amount", "err");
+  const amt = document.getElementById("autoAmt").value.trim();
+  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter ETH amount", "err");
   try {
+    const val = ethers.parseEther(amt);
     showStatus("Sending transaction…", "wait");
-    const tx = await vault.depositAndAutoMintPLS({ value: ethers.parseUnits(amt, 18) });
+    const tx = await vault.depositAndAutoMintETH({ value: val });
     showStatus("Pending: " + tx.hash.slice(0,10) + "…", "wait");
     await tx.wait();
-    showStatus("Done! PLS deposited and pSunDAI minted.", "ok");
+    showStatus("Done! ETH deposited and bSunDAI minted.", "ok");
     await refreshAll();
   } catch(e) { showStatus(e.reason || e.message || "Transaction failed", "err"); }
 }
 
-async function doDepositPLS() {
+async function doDepositETH() {
   if (!ensureWallet()) return;
-  const amt = document.getElementById("depPLSAmt").value;
-  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter PLS amount", "err");
+  const amt = document.getElementById("depETHAmt").value.trim();
+  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter ETH amount", "err");
   try {
-    showStatus("Sending transaction…", "wait");
-    const tx = await vault.depositPLS({ value: ethers.parseUnits(amt, 18) });
+    const val = ethers.parseEther(amt);
+    showStatus("Depositing ETH…", "wait");
+    const tx = await vault.depositETH({ value: val });
     showStatus("Pending: " + tx.hash.slice(0,10) + "…", "wait");
     await tx.wait();
-    showStatus("PLS deposited.", "ok");
+    showStatus("ETH deposited.", "ok");
     await refreshAll();
   } catch(e) { showStatus(e.reason || e.message || "Transaction failed", "err"); }
 }
 
-async function doDepositWPLS() {
+async function doDepositWETH() {
   if (!ensureWallet()) return;
-  const amt = document.getElementById("depWPLSAmt").value;
-  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter WPLS amount", "err");
+  const amt = document.getElementById("depWETHAmt").value.trim();
+  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter WETH amount", "err");
   try {
-    const wplsAddr = await vault.wpls();
-    const wplsContract = new ethers.Contract(wplsAddr, [
-      {"inputs":[{"name":"spender","type":"address"},{"name":"amount","type":"uint256"}],"name":"approve","outputs":[{"type":"bool"}],"stateMutability":"nonpayable","type":"function"}
+    const val = ethers.parseEther(amt);
+    const wethAddr = await vault.weth();
+    const wethC = new ethers.Contract(wethAddr, [
+      {"inputs":[{"name":"spender","type":"address"},{"name":"amount","type":"uint256"}],"name":"approve","outputs":[{"type":"bool"}],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}
     ], signer);
-    showStatus("Approving WPLS…", "wait");
-    const parsed = ethers.parseUnits(amt, 18);
-    const appTx = await wplsContract.approve(VAULT_ADDR, parsed);
-    await appTx.wait();
-    showStatus("Depositing WPLS…", "wait");
-    const tx = await vault.deposit(parsed);
+    const allowance = await wethC.allowance(account, VAULT_ADDR);
+    if (allowance < val) {
+      showStatus("Approving WETH…", "wait");
+      const atx = await wethC.approve(VAULT_ADDR, val * 10n);
+      await atx.wait();
+    }
+    showStatus("Depositing WETH…", "wait");
+    const tx = await vault.deposit(val);
+    showStatus("Pending: " + tx.hash.slice(0,10) + "…", "wait");
     await tx.wait();
-    showStatus("WPLS deposited.", "ok");
+    showStatus("WETH deposited.", "ok");
     await refreshAll();
   } catch(e) { showStatus(e.reason || e.message || "Transaction failed", "err"); }
 }
 
 async function doMint() {
   if (!ensureWallet()) return;
-  const amt = document.getElementById("mintAmt").value;
-  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter pSunDAI amount", "err");
+  const amt = document.getElementById("mintAmt").value.trim();
+  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter amount", "err");
   try {
-    showStatus("Sending transaction…", "wait");
-    const tx = await vault.mint(ethers.parseUnits(amt, 18));
+    const val = ethers.parseEther(amt);
+    showStatus("Minting bSunDAI…", "wait");
+    const tx = await vault.mint(val);
     showStatus("Pending: " + tx.hash.slice(0,10) + "…", "wait");
     await tx.wait();
-    showStatus("pSunDAI minted.", "ok");
+    showStatus("Minted ✓", "ok");
     await refreshAll();
   } catch(e) { showStatus(e.reason || e.message || "Transaction failed", "err"); }
 }
 
 async function doRepay() {
   if (!ensureWallet()) return;
-  const amt = document.getElementById("repayAmt").value;
-  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter pSunDAI amount", "err");
+  const amt = document.getElementById("repayAmt").value.trim();
+  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter amount", "err");
   try {
-    // pSunDAI vault uses onlyVault burn(from, amount) — no token approval needed
+    const val = ethers.parseEther(amt);
+    await ensureApproval(val);
     showStatus("Repaying…", "wait");
-    const tx = await vault.repay(ethers.parseUnits(amt, 18));
+    const tx = await vault.repay(val);
+    showStatus("Pending: " + tx.hash.slice(0,10) + "…", "wait");
     await tx.wait();
-    showStatus("Repaid.", "ok");
+    showStatus("Repaid ✓", "ok");
     await refreshAll();
   } catch(e) { showStatus(e.reason || e.message || "Transaction failed", "err"); }
 }
 
-async function doRepayAndWithdraw() {
+async function doRepayAll() {
   if (!ensureWallet()) return;
   try {
     const [,debt] = await vault.vaultInfo(account);
+    if (debt === ZERO) return showStatus("No debt to repay", "err");
     const bal = await token.balanceOf(account);
-    const repayAmt = debt < bal ? debt : bal;
-    if (repayAmt === ZERO) return showStatus("No debt to repay", "err");
-    // pSunDAI vault uses onlyVault burn(from, amount) — no token approval needed
-    showStatus("Repaying and withdrawing…", "wait");
-    const tx = await vault.repayAndAutoWithdraw(repayAmt);
+    if (bal < debt) return showStatus("Insufficient bSunDAI. Need " + fmt18(debt) + " bSunDAI.", "err");
+    await ensureApproval(debt);
+    showStatus("Repaying all + withdrawing…", "wait");
+    const tx = await vault.repayAndAutoWithdraw(debt);
+    showStatus("Pending: " + tx.hash.slice(0,10) + "…", "wait");
     await tx.wait();
-    showStatus("Position closed. PLS returned.", "ok");
+    showStatus("Full exit complete ✓", "ok");
     await refreshAll();
   } catch(e) { showStatus(e.reason || e.message || "Transaction failed", "err"); }
 }
 
-async function doWithdrawPLS() {
+async function doWithdrawETH() {
   if (!ensureWallet()) return;
-  const amt = document.getElementById("withPLSAmt").value;
-  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter PLS amount", "err");
+  const amt = document.getElementById("withETHAmt").value.trim();
+  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter ETH amount", "err");
   try {
-    showStatus("Sending transaction…", "wait");
-    const tx = await vault.withdrawPLS(ethers.parseUnits(amt, 18));
+    const val = ethers.parseEther(amt);
+    showStatus("Withdrawing ETH…", "wait");
+    const tx = await vault.withdrawETH(val);
+    showStatus("Pending: " + tx.hash.slice(0,10) + "…", "wait");
     await tx.wait();
-    showStatus("PLS withdrawn.", "ok");
-    await refreshAll();
-  } catch(e) { showStatus(e.reason || e.message || "Transaction failed", "err"); }
-}
-
-async function doWithdrawWPLS() {
-  if (!ensureWallet()) return;
-  const amt = document.getElementById("withWPLSAmt").value;
-  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter WPLS amount", "err");
-  try {
-    showStatus("Sending transaction…", "wait");
-    const tx = await vault.withdrawWPLS(ethers.parseUnits(amt, 18));
-    await tx.wait();
-    showStatus("WPLS withdrawn.", "ok");
+    showStatus("Withdrawn ✓", "ok");
     await refreshAll();
   } catch(e) { showStatus(e.reason || e.message || "Transaction failed", "err"); }
 }
@@ -1143,23 +1194,19 @@ async function doReconcile() {
     showStatus("Reconciling…", "wait");
     const tx = await vault.reconcile();
     await tx.wait();
-    showStatus("Reconciled.", "ok");
+    showStatus("Reconciled ✓", "ok");
     await refreshSystem();
   } catch(e) { showStatus(e.reason || e.message || "Failed", "err"); }
 }
 
-async function doPoke() {
+async function doRefreshOracle() {
   if (!ensureWallet()) return;
   try {
-    const canPoke = await oracle.connect(signer).canPoke();
-    if (!canPoke) {
-      const t = await oracle.timeUntilNextPoke();
-      return showStatus(`Poke cooldown — ${fmtSecs(Number(t))} remaining`, "err");
-    }
-    showStatus("Poking oracle…", "wait");
-    const tx = await oracle.connect(signer).poke();
+    showStatus("Refreshing oracle…", "wait");
+    const oW = new ethers.Contract(ORACLE_ADDR, ORACLE_ABI, signer);
+    const tx = await oW.refreshPrice();
     await tx.wait();
-    showStatus("Oracle poked.", "ok");
+    showStatus("Oracle refreshed ✓", "ok");
     await refreshOracle();
   } catch(e) { showStatus(e.reason || e.message || "Failed", "err"); }
 }
@@ -1167,29 +1214,39 @@ async function doPoke() {
 async function doClearBadDebt() {
   if (!ensureWallet()) return;
   const addr = document.getElementById("badDebtAddr").value.trim();
-  if (!ethers.isAddress(addr)) return showStatus("Invalid address", "err");
+  if (!ethers.isAddress(addr)) return showStatus("Enter valid address", "err");
   try {
     showStatus("Clearing bad debt…", "wait");
     const tx = await vault.clearBadDebt(addr);
     await tx.wait();
-    showStatus("Bad debt cleared. PLS sent to you.", "ok");
-    await refreshAll();
+    showStatus("Bad debt cleared. ETH sent to you.", "ok");
+    await refreshSystem();
   } catch(e) { showStatus(e.reason || e.message || "Failed", "err"); }
 }
 
 async function doSettle() {
   if (!ensureWallet()) return;
-  const amt = document.getElementById("settleAmt").value;
+  const amt = document.getElementById("settleAmt").value.trim();
   if (!amt || parseFloat(amt) <= 0) return showStatus("Enter amount", "err");
   try {
-    // pSunDAI vault uses onlyVault burn(from, amount) — no token approval needed
+    const val = ethers.parseEther(amt);
+    await ensureApproval(val);
     showStatus("Settling debt…", "wait");
-    const tx = await vault.settleDebt(ethers.parseUnits(amt, 18));
+    const tx = await vault.settleDebt(val);
     await tx.wait();
-    showStatus("Debt settled.", "ok");
+    showStatus("Bad debt settled ✓", "ok");
     await refreshSystem();
   } catch(e) { showStatus(e.reason || e.message || "Failed", "err"); }
 }
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  loadABIs().catch(() => {});
+  if (window.ethereum) {
+    window.ethereum.on("accountsChanged", () => location.reload());
+    window.ethereum.on("chainChanged",    () => location.reload());
+  }
+});
 </script>
 </body>
 </html>

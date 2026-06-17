@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>bSunDAI — Vault Dashboard</title>
+  <link rel="icon" href="sundailogo.png" type="image/png"/>
+  <meta name="theme-color" content="#FF8C00"/>
+  <script>
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && !navigator.userAgent.includes("MetaMaskMobile")) {
+      const url = location.origin + location.pathname + location.search + location.hash;
+      location.replace(/iPhone|iPad|iPod/i.test(navigator.userAgent)
+        ? "metamask://dapp/" + url.replace(/^https?:\/\//, '')
+        : "https://metamask.app.link/dapp/" + encodeURIComponent(url));
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <script src="ethers.umd.min.js"></script>
+  <style>
+    :root {
+      --gold:   #FFD700; --amber: #FF8C00; --ember: #FF5500; --base: #0052FF;
+      --cream:  #FFF5E4; --muted: rgba(255,245,228,0.55); --dim: rgba(255,245,228,0.30);
+      --bg:     #060004; --surface: rgba(255,140,0,0.06); --border: rgba(255,140,0,0.2);
+      --safe:   #00FFB2; --warn: #FFD000; --risk: #FF2D55;
+      --mono:   'IBM Plex Mono', monospace; --head: 'DM Serif Display', Georgia, serif;
+      --body:   'Outfit', system-ui, sans-serif; --r: 14px;
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    body { background:var(--bg); color:var(--cream); font-family:var(--body); min-height:100vh; overflow-x:hidden; }
+    #bg-canvas { position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+    /* NAV */
+    .nav { position:fixed; top:0; left:0; right:0; z-index:1000; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 24px; background:rgba(6,0,4,0.93); backdrop-filter:blur(24px); border-bottom:1px solid rgba(255,140,0,0.13); }
+    .nav-brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--cream); }
+    .nav-brand img { height:28px; width:28px; object-fit:contain; }
+    .nav-brand-text { font-family:var(--head); font-style:italic; font-size:1.22em; }
+    .nav-badge { background:linear-gradient(135deg,var(--base),#0040CC); color:#fff; padding:2px 9px; border-radius:6px; font-size:0.6em; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+    .nav-links { display:flex; gap:4px; }
+    .nav-link { padding:5px 14px; border-radius:7px; font-size:0.82em; font-weight:600; text-decoration:none; color:var(--dim); transition:all 0.15s; border:1px solid transparent; letter-spacing:0.03em; text-transform:uppercase; }
+    .nav-link:hover { color:var(--cream); background:rgba(255,140,0,0.1); }
+    .nav-link.active { color:var(--gold); border-color:rgba(255,215,0,0.22); background:rgba(255,215,0,0.06); }
+    .wallet-btn { background:rgba(255,140,0,0.12); border:1px solid rgba(255,140,0,0.38); color:var(--cream); font-family:var(--body); font-weight:700; font-size:0.82em; padding:7px 16px; border-radius:8px; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+    .wallet-btn.connected { border-color:var(--gold); color:var(--gold); background:rgba(255,215,0,0.07); }
+    @media (max-width:520px) { .nav { padding:0 14px; } .nav-brand-text { display:none; } .nav-badge { display:none; } .nav-link { font-size:0.78em; padding:5px 9px; } }
+
+    /* ORACLE BAR */
+    .oracle-bar { position:fixed; top:58px; left:0; right:0; z-index:999; display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; padding:5px 20px; font-size:0.72em; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; backdrop-filter:blur(16px); background:rgba(0,50,20,0.9); border-bottom:1px solid rgba(0,255,160,0.18); color:var(--safe); transition:all 0.3s; }
+    .oracle-bar.stale { background:rgba(60,0,10,0.9); border-color:rgba(255,45,85,0.28); color:var(--risk); }
+    .oracle-bar.liq   { background:rgba(80,0,10,0.95); border-color:rgba(255,45,85,0.5); color:var(--risk); animation:warnPulse 1.4s ease infinite; }
+    .oracle-bar.warn  { background:rgba(70,40,0,0.92); border-color:rgba(255,165,0,0.35); color:var(--warn); }
+    .ob-dot { width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
+    .ob-sep { opacity:0.35; }
+    @keyframes warnPulse { 0%,100%{opacity:1} 50%{opacity:0.82} }
+
+    /* LAYOUT */
+    .page { position:relative; z-index:10; max-width:900px; margin:0 auto; padding:108px 18px 80px; }
+
+    /* HERO */
+    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+    .page-title { font-family:var(--head); font-style:italic; font-size:clamp(1.8em,4vw,2.6em); background:linear-gradient(135deg,#FF8C00 0%,#FFD700 50%,#FF8C00 100%); background-size:200%; animation:shimmer 4s ease infinite; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    @keyframes shimmer { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+    .page-sub { font-size:0.8em; color:var(--dim); letter-spacing:0.05em; text-transform:uppercase; }
+
+    /* TOAST */
+    .toast-area { min-height:34px; text-align:center; margin:0 0 8px; }
+    .toast { display:inline-block; font-size:0.82em; font-weight:600; padding:7px 18px; border-radius:9px; animation:toastIn 0.2s ease; max-width:95vw; word-break:break-word; }
+    @keyframes toastIn { from{opacity:0;transform:translateY(-4px)} }
+    .toast.ok  { background:rgba(0,255,178,0.07); border:1px solid rgba(0,255,178,0.22); color:var(--safe); }
+    .toast.err { background:rgba(255,45,85,0.07); border:1px solid rgba(255,45,85,0.22); color:var(--risk); }
+    .toast.info{ background:rgba(255,215,0,0.06); border:1px solid rgba(255,215,0,0.2); color:var(--gold); }
+
+    /* CARDS */
+    .card { background:linear-gradient(145deg,rgba(18,8,2,0.95),rgba(10,4,1,0.98)); border:1px solid rgba(255,140,0,0.2); border-radius:var(--r); padding:20px; margin-bottom:12px; position:relative; overflow:hidden; box-shadow:0 0 40px rgba(255,140,0,0.06); }
+    .card-title { font-size:0.62em; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:rgba(255,215,0,0.38); margin-bottom:14px; }
+
+    /* TABS */
+    .tabs { display:flex; gap:4px; background:rgba(0,0,0,0.3); padding:4px; border-radius:11px; margin-bottom:16px; flex-wrap:wrap; }
+    .tab { flex:1; min-width:70px; padding:8px 6px; background:transparent; border:none; cursor:pointer; font-family:var(--body); font-weight:700; font-size:0.8em; color:var(--dim); border-radius:8px; transition:all 0.18s; letter-spacing:0.04em; text-transform:uppercase; }
+    .tab:hover { color:var(--cream); background:rgba(255,140,0,0.1); }
+    .tab.active { background:rgba(255,140,0,0.14); color:var(--gold); border:1px solid rgba(255,215,0,0.2); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+
+    /* EXPLAINER */
+    .explainer { background:rgba(255,215,0,0.04); border:1px solid rgba(255,215,0,0.1); border-radius:10px; padding:13px 16px; margin-bottom:14px; }
+    .explainer-title { font-size:0.65em; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,215,0,0.5); margin-bottom:8px; }
+    .explainer p { font-size:0.82em; color:var(--muted); line-height:1.55; margin-bottom:7px; }
+    .explainer p:last-child { margin-bottom:0; }
+    .explainer strong { color:var(--gold); font-weight:600; }
+
+    /* SCAN BAR */
+    .scan-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+    .btn-scan { background:linear-gradient(135deg,var(--amber),#FF6600); color:#fff; border:none; border-radius:9px; font-family:var(--body); font-weight:700; font-size:0.85em; padding:10px 20px; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+    .btn-scan:hover { box-shadow:0 0 24px rgba(255,140,0,0.35); transform:translateY(-1px); }
+    .btn-scan:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+    .scan-info { font-size:0.78em; color:var(--dim); font-family:var(--mono); }
+    .progress-bar { flex:1; min-width:120px; height:4px; background:rgba(255,255,255,0.06); border-radius:100px; overflow:hidden; }
+    .progress-fill { height:100%; border-radius:100px; background:var(--amber); transition:width 0.3s; }
+
+    /* VAULT LIST */
+    .vault-list { display:flex; flex-direction:column; gap:8px; }
+    .vault-row {
+      background:rgba(255,140,0,0.04); border:1px solid rgba(255,140,0,0.13); border-radius:11px;
+      padding:14px 16px; transition:border-color 0.2s;
+    }
+    .vault-row.liquidatable { border-color:rgba(255,45,85,0.4); background:rgba(255,45,85,0.04); }
+    .vault-row.zombie       { border-color:rgba(255,165,0,0.45); background:rgba(255,165,0,0.04); }
+    .vault-row.redeemable   { border-color:rgba(255,215,0,0.28); background:rgba(255,215,0,0.03); }
+    .vr-top { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+    .vr-addr { font-family:var(--mono); font-size:0.8em; color:var(--amber); }
+    .vr-status { font-size:0.68em; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; padding:3px 9px; border-radius:5px; }
+    .vr-status.liquidatable { color:var(--risk); background:rgba(255,45,85,0.12); border:1px solid rgba(255,45,85,0.25); }
+    .vr-status.zombie       { color:var(--warn); background:rgba(255,165,0,0.1); border:1px solid rgba(255,165,0,0.25); }
+    .vr-status.redeemable   { color:var(--gold); background:rgba(255,215,0,0.08); border:1px solid rgba(255,215,0,0.2); }
+    .vr-status.safe         { color:var(--safe); background:rgba(0,255,178,0.06); border:1px solid rgba(0,255,178,0.15); }
+    .vr-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; }
+    @media (min-width:500px) { .vr-stats { grid-template-columns:repeat(4,1fr); } }
+    .vr-stat { }
+    .vr-stat-label { font-size:0.6em; color:var(--dim); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px; font-weight:600; }
+    .vr-stat-val { font-size:0.84em; font-weight:700; font-family:var(--mono); color:var(--amber); }
+    .vr-stat-val.risk { color:var(--risk); }
+    .vr-stat-val.warn { color:var(--warn); }
+    .vr-stat-val.safe { color:var(--safe); }
+    .vr-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+    .vr-btn { padding:6px 14px; border-radius:7px; font-weight:700; font-size:0.78em; cursor:pointer; border:1px solid; transition:all 0.15s; }
+    .vr-btn.liq  { color:var(--risk); border-color:rgba(255,45,85,0.4); background:rgba(255,45,85,0.06); }
+    .vr-btn.liq:hover { background:rgba(255,45,85,0.14); }
+    .vr-btn.redeem { color:var(--gold); border-color:rgba(255,215,0,0.35); background:rgba(255,215,0,0.05); }
+    .vr-btn.redeem:hover { background:rgba(255,215,0,0.1); }
+    .vr-btn.zombie { color:var(--warn); border-color:rgba(255,165,0,0.35); background:rgba(255,165,0,0.05); }
+    .vr-btn.zombie:hover { background:rgba(255,165,0,0.12); }
+    .empty-state { text-align:center; padding:32px 0; color:var(--dim); font-size:0.85em; }
+
+    /* MODAL */
+    .modal-overlay { position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); display:none; align-items:center; justify-content:center; padding:20px; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:#0D000A; border:1px solid rgba(255,140,0,0.28); border-radius:18px; padding:24px; max-width:520px; width:100%; max-height:88vh; overflow-y:auto; position:relative; }
+    .modal-close { position:absolute; top:14px; right:16px; background:transparent; border:none; color:var(--dim); font-size:1.4em; cursor:pointer; }
+    .modal-close:hover { color:var(--cream); }
+    .modal-title { font-family:var(--head); font-style:italic; font-size:1.4em; color:var(--gold); margin-bottom:4px; }
+    .modal-sub   { font-size:0.78em; color:var(--dim); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:16px; }
+    .modal-info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+    .mi-cell { background:rgba(255,140,0,0.06); border:1px solid rgba(255,140,0,0.13); border-radius:9px; padding:10px 12px; }
+    .mi-label { font-size:0.6em; color:var(--dim); text-transform:uppercase; font-weight:600; letter-spacing:0.05em; margin-bottom:3px; }
+    .mi-val   { font-size:0.9em; font-weight:700; font-family:var(--mono); color:var(--amber); }
+    .mi-val.risk { color:var(--risk); }
+    .mi-val.safe { color:var(--safe); }
+    .mi-val.warn { color:var(--warn); }
+    .modal-input-group { margin-bottom:12px; }
+    .modal-input-label { font-size:0.7em; font-weight:700; text-transform:uppercase; color:var(--dim); margin-bottom:6px; letter-spacing:0.07em; }
+    .modal-input { width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,140,0,0.2); border-radius:9px; padding:11px 14px; font-family:var(--mono); font-size:0.9em; color:var(--cream); outline:none; }
+    .modal-input:focus { border-color:rgba(255,215,0,0.38); }
+    .modal-preview { font-size:0.8em; color:var(--dim); font-family:var(--mono); margin-bottom:12px; display:flex; flex-wrap:wrap; gap:8px; }
+    .modal-preview .mk { color:rgba(255,245,228,0.38); }
+    .modal-preview .mv { color:var(--amber); }
+    .btn-modal-primary { width:100%; padding:12px; border-radius:10px; font-family:var(--body); font-weight:700; font-size:0.9em; cursor:pointer; border:none; background:linear-gradient(135deg,var(--amber),#FF6600); color:#fff; transition:all 0.2s; margin-bottom:8px; }
+    .btn-modal-primary:hover { box-shadow:0 0 28px rgba(255,140,0,0.3); }
+    .btn-modal-max { width:100%; padding:10px; border-radius:9px; font-family:var(--body); font-weight:700; font-size:0.82em; cursor:pointer; border:1px solid rgba(255,140,0,0.3); background:transparent; color:var(--amber); transition:all 0.15s; }
+    .btn-modal-max:hover { background:rgba(255,140,0,0.1); }
+    .warning-box { background:rgba(255,45,85,0.07); border:1px solid rgba(255,45,85,0.28); border-radius:9px; padding:11px 14px; margin-bottom:14px; font-size:0.8em; color:rgba(255,245,228,0.72); line-height:1.5; }
+    .warning-box strong { color:var(--risk); }
+
+    /* LOOKUP */
+    .lookup-input-row { display:flex; gap:8px; margin-bottom:14px; }
+    .lookup-input { flex:1; background:rgba(255,255,255,0.04); border:1px solid rgba(255,140,0,0.2); border-radius:9px; padding:11px 14px; font-family:var(--mono); font-size:0.88em; color:var(--cream); outline:none; }
+    .lookup-input:focus { border-color:rgba(255,215,0,0.38); }
+    .btn-lookup { background:rgba(255,140,0,0.14); border:1px solid rgba(255,140,0,0.3); color:var(--amber); font-weight:700; font-size:0.85em; padding:11px 18px; border-radius:9px; cursor:pointer; white-space:nowrap; }
+    .lookup-result { background:rgba(255,140,0,0.04); border:1px solid rgba(255,140,0,0.14); border-radius:11px; padding:16px; }
+    .lr-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    @media (min-width:500px) { .lr-grid { grid-template-columns:repeat(3,1fr); } }
+    .lr-cell { background:rgba(0,0,0,0.2); border-radius:8px; padding:10px 12px; }
+    .lr-label { font-size:0.6em; color:var(--dim); text-transform:uppercase; font-weight:600; margin-bottom:3px; }
+    .lr-val   { font-size:0.88em; font-weight:700; font-family:var(--mono); color:var(--amber); }
+
+    /* MISC */
+    .section-head { display:flex; align-items:center; gap:10px; margin:22px 0 10px; }
+    .section-label { font-size:0.64em; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:rgba(255,215,0,0.38); white-space:nowrap; }
+    .section-line { flex:1; height:1px; background:linear-gradient(90deg,rgba(255,140,0,0.2),transparent); }
+    .liq-warning { background:rgba(255,45,85,0.07); border:1px solid rgba(255,45,85,0.3); border-radius:10px; padding:12px 14px; margin-bottom:12px; font-size:0.82em; color:rgba(255,245,228,0.75); line-height:1.5; }
+    .liq-warning strong { color:var(--risk); }
+    .bonus-bar { height:5px; border-radius:100px; background:rgba(255,255,255,0.06); margin-top:6px; overflow:hidden; }
+    .bonus-fill { height:100%; border-radius:100px; background:linear-gradient(90deg,var(--risk),var(--warn)); }
+  </style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+
+<!-- NAV -->
+<nav class="nav">
+  <a class="nav-brand" href="index.html">
+    <img src="sundailogo.png" alt="SunDAI"/>
+    <span class="nav-brand-text">bSunDAI</span>
+    <span class="nav-badge">BASE V7</span>
+  </a>
+  <div class="nav-links">
+    <a class="nav-link" href="index.html">Vault</a>
+    <a class="nav-link active" href="liquidations.html">Liquidate</a>
+  </div>
+  <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">Connect Wallet</button>
+</nav>
+
+<!-- ORACLE BAR -->
+<div class="oracle-bar" id="oracleBar">
+  <span class="ob-dot"></span>
+  <span id="obPrice">ETH —</span>
+  <span class="ob-sep">|</span>
+  <span id="obStatus">Oracle Loading…</span>
+  <span class="ob-sep" id="obWarnSep" style="display:none">|</span>
+  <span id="obWarn" style="display:none"></span>
+</div>
+
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Vault Dashboard</div>
+      <div class="page-sub">bSunDAI V7 · Base Chain</div>
+    </div>
+  </div>
+
+  <div class="toast-area"><span id="toast" class="toast" style="display:none"></span></div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('liquidate')">Liquidate</button>
+      <button class="tab" onclick="switchTab('redeem')">Redeem</button>
+      <button class="tab" onclick="switchTab('allvaults')">All Vaults</button>
+      <button class="tab" onclick="switchTab('lookup')">Lookup</button>
+    </div>
+
+    <!-- LIQUIDATE TAB -->
+    <div class="tab-panel active" id="tab-liquidate">
+      <div class="explainer">
+        <div class="explainer-title">Liquidate Under-Collateralized Vaults</div>
+        <p>Vaults below <strong>110% CR</strong> are eligible for liquidation. Repay some or all of a vault's bSunDAI debt and receive proportional ETH collateral plus a <strong>bonus</strong>.</p>
+        <p><strong>V7 inverted Dutch auction:</strong> Bonus starts at <strong>10%</strong> when the vault first becomes liquidatable and decays to <strong>2%</strong> over 3 hours. First mover wins the largest bonus. This design minimizes bad debt by incentivizing immediate action — unlike V6 where bonus grew over time, causing bots to wait.</p>
+        <p><strong>V7 dual-price:</strong> If Chainlink has been 3%+ below committed price for 30+ minutes, liquidation eligibility uses live Chainlink price. This closes the bad-debt window inherent in conservative price stepping during a real crash.</p>
+      </div>
+      <div class="scan-bar">
+        <button class="btn-scan" id="scanLiqBtn" onclick="scanLiquidatable()">Scan Liquidatable Vaults</button>
+        <div class="scan-info" id="liqScanInfo">—</div>
+        <div class="progress-bar" id="liqProgress" style="display:none"><div class="progress-fill" id="liqProgressFill" style="width:0%"></div></div>
+      </div>
+      <div class="vault-list" id="liqList"><div class="empty-state">Scan to find liquidatable vaults.</div></div>
+    </div>
+
+    <!-- REDEEM TAB -->
+    <div class="tab-panel" id="tab-redeem">
+      <div class="explainer">
+        <div class="explainer-title">Redeem bSunDAI for ETH at $1 Rate</div>
+        <p>Burn bSunDAI and receive ETH at the current oracle price — <strong>1 bSunDAI = $1 USD worth of ETH</strong>, always. This is the hard peg mechanism. Redemptions are available against any vault with sufficient debt.</p>
+        <p>You receive: <code>bSunDAI × $1 / ETH_price</code> ETH, minus <strong>0.5% fee</strong> which stays with the vault owner. Minimum: <strong>100 bSunDAI</strong> per redemption. Oracle must be fresh.</p>
+        <p>Unlike liquidations, there is no CR requirement for a vault to be redeemable. Any vault with enough debt to cover your amount is eligible. The vault owner's debt decreases by the bSunDAI burned.</p>
+      </div>
+      <div class="scan-bar">
+        <button class="btn-scan" id="scanRedeemBtn" onclick="scanRedeemable()">Scan Vaults for Redemption</button>
+        <div class="scan-info" id="redeemScanInfo">—</div>
+        <div class="progress-bar" id="redeemProgress" style="display:none"><div class="progress-fill" id="redeemProgressFill" style="width:0%"></div></div>
+      </div>
+      <div class="vault-list" id="redeemList"><div class="empty-state">Scan to find vaults for redemption.</div></div>
+    </div>
+
+    <!-- ALL VAULTS TAB -->
+    <div class="tab-panel" id="tab-allvaults">
+      <div class="explainer">
+        <div class="explainer-title">All Protocol Vaults</div>
+        <p>Complete list of all addresses that have interacted with the vault. Includes active vaults, vaults with collateral only, and historical vaults with zero balance. Sorted by CR (liquidatable first).</p>
+        <p>Click <strong>Liquidate</strong> on any at-risk vault to open the action modal.</p>
+      </div>
+      <div class="scan-bar">
+        <button class="btn-scan" id="scanAllBtn" onclick="scanAll()">Scan All Vaults</button>
+        <div class="scan-info" id="allScanInfo">—</div>
+        <div class="progress-bar" id="allProgress" style="display:none"><div class="progress-fill" id="allProgressFill" style="width:0%"></div></div>
+      </div>
+      <div class="vault-list" id="allList"><div class="empty-state">Scan to load all vaults.</div></div>
+    </div>
+
+    <!-- LOOKUP TAB -->
+    <div class="tab-panel" id="tab-lookup">
+      <div class="explainer">
+        <div class="explainer-title">Look Up Any Vault</div>
+        <p>Enter a wallet address to view full vault details: collateral, debt, CR, liquidation info, redemption preview, bad debt status. Useful for monitoring specific addresses.</p>
+      </div>
+      <div class="lookup-input-row">
+        <input class="lookup-input" id="lookupInput" placeholder="0x… vault owner address"/>
+        <button class="btn-lookup" onclick="doLookup()">Look Up</button>
+      </div>
+      <div id="lookupResult" style="display:none" class="lookup-result">
+        <div class="card-title" style="margin-bottom:12px">Vault Details</div>
+        <div class="lr-grid">
+          <div class="lr-cell"><div class="lr-label">Collateral</div><div class="lr-val" id="lrColl">—</div></div>
+          <div class="lr-cell"><div class="lr-label">Debt</div><div class="lr-val" id="lrDebt">—</div></div>
+          <div class="lr-cell"><div class="lr-label">Coll. Value</div><div class="lr-val" id="lrCollUSD">—</div></div>
+          <div class="lr-cell"><div class="lr-label">CR</div><div class="lr-val" id="lrCR">—</div></div>
+          <div class="lr-cell"><div class="lr-label">Mintable</div><div class="lr-val" id="lrMintable">—</div></div>
+          <div class="lr-cell"><div class="lr-label">Oracle</div><div class="lr-val" id="lrOracle">—</div></div>
+          <div class="lr-cell"><div class="lr-label">Liq Bonus</div><div class="lr-val" id="lrBonus">—</div></div>
+          <div class="lr-cell"><div class="lr-label">Repay to Safe</div><div class="lr-val" id="lrRepayNeeded">—</div></div>
+          <div class="lr-cell"><div class="lr-label">Zombie?</div><div class="lr-val" id="lrZombie">—</div></div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="vr-btn liq" id="lrLiqBtn" onclick="openLiqModal(currentLookup)" style="display:none">Liquidate</button>
+          <button class="vr-btn redeem" id="lrRedeemBtn" onclick="openRedeemModal(currentLookup)" style="display:none">Redeem Against</button>
+          <button class="vr-btn zombie" id="lrZombieBtn" onclick="doClearBadDebt(currentLookup?.address)" style="display:none">Clear Bad Debt</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIQUIDATE MODAL -->
+<div class="modal-overlay" id="liqModal" onclick="if(event.target===this)closeLiqModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeLiqModal()">✕</button>
+    <div class="modal-title">Liquidate Vault</div>
+    <div class="modal-sub" id="liqModalAddr">—</div>
+
+    <div class="liq-warning">
+      <strong>Inverted Dutch Auction:</strong> Bonus is highest NOW and decays over 3 hours. Current bonus: <strong id="liqBonusPct">—</strong>. First mover wins. Do not wait.
+    </div>
+
+    <div class="modal-info-grid">
+      <div class="mi-cell"><div class="mi-label">Vault Debt</div><div class="mi-val risk" id="liqDebt">—</div></div>
+      <div class="mi-cell"><div class="mi-label">CR</div><div class="mi-val risk" id="liqCR">—</div></div>
+      <div class="mi-cell"><div class="mi-label">Max Repay</div><div class="mi-val" id="liqMaxRepay">—</div></div>
+      <div class="mi-cell"><div class="mi-label">Bonus</div><div class="mi-val" id="liqBonusVal">—</div></div>
+    </div>
+
+    <div>
+      <div style="font-size:0.65em;color:var(--dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px">Auction Elapsed</div>
+      <div class="bonus-bar"><div class="bonus-fill" id="liqBonusFill" style="width:100%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:0.65em;color:var(--dim);margin-top:3px;font-family:var(--mono)">
+        <span>10% bonus (now)</span><span id="liqElapsedText">—</span><span>2% bonus (3h)</span>
+      </div>
+    </div>
+
+    <div class="modal-input-group" style="margin-top:14px">
+      <div class="modal-input-label">bSUNDAI to Repay</div>
+      <input class="modal-input" id="liqAmount" type="number" min="0" placeholder="0.0" oninput="previewLiq()"/>
+    </div>
+    <div class="modal-preview">
+      <span><span class="mk">ETH reward → </span><span class="mv" id="liqETHOut">—</span></span>
+      <span><span class="mk">Bonus ETH → </span><span class="mv" id="liqBonusOut">—</span></span>
+    </div>
+
+    <div id="liqApproveNote" style="font-size:0.78em;color:var(--warn);margin-bottom:10px;display:none">⚠ Approval needed — first click will approve, second will liquidate.</div>
+    <button class="btn-modal-primary" onclick="doLiquidate()">Liquidate</button>
+    <button class="btn-modal-max" onclick="fillLiqMax()">Use Max (full debt)</button>
+  </div>
+</div>
+
+<!-- REDEEM MODAL -->
+<div class="modal-overlay" id="redeemModal" onclick="if(event.target===this)closeRedeemModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeRedeemModal()">✕</button>
+    <div class="modal-title">Redeem bSunDAI</div>
+    <div class="modal-sub" id="redeemModalAddr">—</div>
+
+    <div class="explainer" style="margin-bottom:12px">
+      <p style="font-size:0.78em">Burn bSunDAI and receive ETH at the current oracle price. <strong>1 bSunDAI = $1 USD worth of ETH</strong>. A 0.5% fee stays with the vault owner. Minimum: 100 bSunDAI.</p>
+    </div>
+
+    <div class="modal-info-grid">
+      <div class="mi-cell"><div class="mi-label">Vault Debt</div><div class="mi-val" id="redeemVaultDebt">—</div></div>
+      <div class="mi-cell"><div class="mi-label">ETH Price</div><div class="mi-val" id="redeemETHPrice">—</div></div>
+      <div class="mi-cell"><div class="mi-label">Your Balance</div><div class="mi-val" id="redeemUserBal">—</div></div>
+      <div class="mi-cell"><div class="mi-label">Fee</div><div class="mi-val">0.5% to owner</div></div>
+    </div>
+
+    <div class="modal-input-group">
+      <div class="modal-input-label">bSUNDAI to Burn</div>
+      <input class="modal-input" id="redeemAmount" type="number" min="100" placeholder="Min 100 bSUNDAI" oninput="previewRedeem()"/>
+    </div>
+    <div class="modal-preview">
+      <span><span class="mk">ETH out → </span><span class="mv" id="redeemETHOut">—</span></span>
+      <span><span class="mk">USD value → </span><span class="mv" id="redeemUSDOut">—</span></span>
+      <span><span class="mk">Fee → </span><span class="mv" id="redeemFee">—</span></span>
+    </div>
+
+    <div id="redeemApproveNote" style="font-size:0.78em;color:var(--warn);margin-bottom:10px;display:none">⚠ Approval needed — first click will approve, second will redeem.</div>
+    <button class="btn-modal-primary" onclick="doRedeem()">Redeem</button>
+    <button class="btn-modal-max" onclick="fillRedeemMax()">Use Max (vault debt or wallet balance)</button>
+  </div>
+</div>
+
+<script>
+/* ─── CONFIG ─── */
+const VAULT_ADDR  = "0x0000000000000000000000000000000000000000"; // TBD
+const TOKEN_ADDR  = "0x0000000000000000000000000000000000000000"; // TBD
+const ORACLE_ADDR = "0x0000000000000000000000000000000000000000"; // TBD
+const CHAIN_ID    = 8453n;
+const CHAIN_HEX   = "0x2105";
+const BATCH_SIZE  = 8;
+
+/* ─── STATE ─── */
+let provider, signer, userAddr;
+let vaultC, tokenC, oracleC;
+let ethPrice = 0;
+let userTokenBalance = 0n;
+let currentLiq = null, currentRedeem = null, currentLookup = null;
+
+/* ─── ABI CACHE ─── */
+let VAULT_ABI, TOKEN_ABI, ORACLE_ABI;
+async function loadABIs() {
+  if (VAULT_ABI) return;
+  [VAULT_ABI, TOKEN_ABI, ORACLE_ABI] = await Promise.all([
+    fetch('sundai-vault-v7-abi.json').then(r => r.json()),
+    fetch('sundai-token-v7-abi.json').then(r => r.json()),
+    fetch('sundai-oracle-v7-abi.json').then(r => r.json()),
+  ]);
+}
+
+/* ─── CONNECT ─── */
+async function connectWallet() {
+  if (!window.ethereum) return toast("MetaMask not detected", "err");
+  await loadABIs();
+  try {
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const net = await provider.getNetwork();
+    if (net.chainId !== CHAIN_ID) {
+      try {
+        await provider.send("wallet_switchEthereumChain", [{ chainId: CHAIN_HEX }]);
+      } catch {
+        await provider.send("wallet_addEthereumChain", [{
+          chainId: CHAIN_HEX, chainName: "Base",
+          nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+          rpcUrls: ["https://mainnet.base.org"], blockExplorerUrls: ["https://basescan.org"]
+        }]);
+      }
+      provider = new ethers.BrowserProvider(window.ethereum);
+    }
+    signer = await provider.getSigner();
+    userAddr = await signer.getAddress();
+    vaultC  = new ethers.Contract(VAULT_ADDR,  VAULT_ABI,  signer);
+    tokenC  = new ethers.Contract(TOKEN_ADDR,  TOKEN_ABI,  signer);
+    oracleC = new ethers.Contract(ORACLE_ADDR, ORACLE_ABI, provider);
+    const shortAddr = userAddr.slice(0,6)+"…"+userAddr.slice(-4);
+    document.getElementById('walletBtn').textContent = shortAddr;
+    document.getElementById('walletBtn').classList.add('connected');
+    await refreshBar();
+    setInterval(refreshBar, 18000);
+  } catch(e) { toast(parseRevert(e), "err"); }
+}
+
+async function refreshBar() {
+  if (!provider) return;
+  try {
+    const [info, priceStatus, sourceStatus, warnElapsed, liqEnabled] = await Promise.all([
+      vaultC.vaultInfo(userAddr || ethers.ZeroAddress),
+      oracleC.getPriceStatus(),
+      oracleC.getSourceStatus(),
+      oracleC.chainlinkWarningElapsed(),
+      oracleC.isChainlinkLiquidationEnabled()
+    ]);
+    ethPrice = Number(info.price) / 1e18;
+    if (userAddr) {
+      userTokenBalance = await tokenC.balanceOf(userAddr);
+    }
+    updateOracleBar(info.oracleHealthy, ethPrice, priceStatus, sourceStatus, warnElapsed, liqEnabled);
+  } catch(e) { console.warn("bar refresh:", e.message); }
+}
+
+function updateOracleBar(oracleOk, price, ps, ss, warnElapsed, liqEnabled) {
+  const bar = document.getElementById('oracleBar');
+  setText('obPrice', price > 0 ? 'ETH $' + price.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}) : 'ETH —');
+
+  const srcMap = ['—','CHAINLINK','TWAP','CL+TWAP'];
+  const src = srcMap[Number(ss?.source||0)] || '—';
+
+  if (liqEnabled) {
+    bar.className = 'oracle-bar liq';
+    setText('obStatus', src + ' · ⚡ CHAINLINK LIQ ACTIVE');
+    document.getElementById('obWarnSep').style.display = 'none';
+    document.getElementById('obWarn').style.display = 'none';
+  } else if (ps?.chainlinkWarningActive) {
+    bar.className = 'oracle-bar warn';
+    const elapsed = Number(warnElapsed||0);
+    const mins = Math.floor(elapsed/60), secs = elapsed%60;
+    setText('obStatus', src);
+    document.getElementById('obWarnSep').style.display = '';
+    const wo = document.getElementById('obWarn');
+    wo.style.display = '';
+    wo.textContent = '⚠ WARNING ' + mins + 'm ' + secs + 's / 30m';
+  } else if (!oracleOk) {
+    bar.className = 'oracle-bar stale';
+    setText('obStatus', 'ORACLE STALE');
+    document.getElementById('obWarnSep').style.display = 'none';
+    document.getElementById('obWarn').style.display = 'none';
+  } else {
+    bar.className = 'oracle-bar';
+    setText('obStatus', src + ' · FRESH');
+    document.getElementById('obWarnSep').style.display = 'none';
+    document.getElementById('obWarn').style.display = 'none';
+  }
+}
+
+/* ─── SCAN ─── */
+async function getVaultList() {
+  const count = Number(await vaultC.getVaultCount());
+  let owners = [];
+  for (let i = 0; i < count; i += BATCH_SIZE) {
+    const batch = await vaultC.getVaultOwners(i, Math.min(BATCH_SIZE, count - i));
+    owners = owners.concat([...batch]);
+  }
+  return owners;
+}
+
+async function loadVaultInfo(owner) {
+  const [info, liqInfo, isZombie] = await Promise.all([
+    vaultC.vaultInfo(owner),
+    vaultC.liquidationInfo(owner),
+    vaultC.isZombieVault(owner)
+  ]);
+  return {
+    address: owner,
+    collateral: info.collateral,
+    debt: info.debt,
+    collUSD: info.collateralUSD,
+    ratio: info.ratio,
+    mintable: info.mintable,
+    oracleOk: info.oracleHealthy,
+    price: info.price,
+    canLiquidate: liqInfo.canLiquidate,
+    maxRepay: liqInfo.maxRepay,
+    bonusBps: liqInfo.bonusBps,
+    auctionElapsed: liqInfo.auctionElapsed,
+    isZombie
+  };
+}
+
+async function scanLiquidatable() {
+  if (!vaultC) return toast("Connect wallet first", "err");
+  const btn = document.getElementById('scanLiqBtn');
+  btn.disabled = true;
+  btn.textContent = "Scanning…";
+  const list = document.getElementById('liqList');
+  list.innerHTML = '';
+  const progressBar = document.getElementById('liqProgress');
+  const progressFill = document.getElementById('liqProgressFill');
+  progressBar.style.display = 'block';
+
+  try {
+    const owners = await getVaultList();
+    setText('liqScanInfo', owners.length + ' vaults found');
+    const results = [];
+    for (let i = 0; i < owners.length; i += BATCH_SIZE) {
+      const batch = owners.slice(i, i + BATCH_SIZE);
+      const data = await Promise.all(batch.map(loadVaultInfo));
+      results.push(...data);
+      progressFill.style.width = ((i + batch.length) / owners.length * 100) + '%';
+    }
+
+    const eligible = results.filter(v => v.canLiquidate || v.isZombie);
+    if (eligible.length === 0) {
+      list.innerHTML = '<div class="empty-state">No liquidatable vaults found. All vaults are healthy.</div>';
+    } else {
+      eligible.sort((a, b) => Number(a.ratio) - Number(b.ratio));
+      eligible.forEach(v => list.appendChild(buildVaultRow(v, 'liq')));
+    }
+    setText('liqScanInfo', eligible.length + ' / ' + owners.length + ' eligible');
+  } catch(e) { toast(parseRevert(e), "err"); }
+
+  btn.disabled = false;
+  btn.textContent = "Scan Liquidatable Vaults";
+  progressBar.style.display = 'none';
+}
+
+async function scanRedeemable() {
+  if (!vaultC) return toast("Connect wallet first", "err");
+  const btn = document.getElementById('scanRedeemBtn');
+  btn.disabled = true;
+  btn.textContent = "Scanning…";
+  const list = document.getElementById('redeemList');
+  list.innerHTML = '';
+  const progressFill = document.getElementById('redeemProgressFill');
+  document.getElementById('redeemProgress').style.display = 'block';
+
+  try {
+    const owners = await getVaultList();
+    const results = [];
+    for (let i = 0; i < owners.length; i += BATCH_SIZE) {
+      const batch = owners.slice(i, i + BATCH_SIZE);
+      const data = await Promise.all(batch.map(a => vaultC.vaultInfo(a).then(info => ({
+        address: a, collateral: info.collateral, debt: info.debt,
+        collUSD: info.collateralUSD, ratio: info.ratio, price: info.price
+      }))));
+      results.push(...data);
+      progressFill.style.width = ((i + batch.length) / owners.length * 100) + '%';
+    }
+
+    const withDebt = results.filter(v => v.debt > 0n);
+    if (withDebt.length === 0) {
+      list.innerHTML = '<div class="empty-state">No vaults with debt to redeem against.</div>';
+    } else {
+      withDebt.sort((a, b) => Number(a.ratio) - Number(b.ratio));
+      withDebt.forEach(v => list.appendChild(buildVaultRow(v, 'redeem')));
+    }
+    setText('redeemScanInfo', withDebt.length + ' / ' + owners.length + ' with debt');
+  } catch(e) { toast(parseRevert(e), "err"); }
+
+  btn.disabled = false;
+  btn.textContent = "Scan Vaults for Redemption";
+  document.getElementById('redeemProgress').style.display = 'none';
+}
+
+async function scanAll() {
+  if (!vaultC) return toast("Connect wallet first", "err");
+  const btn = document.getElementById('scanAllBtn');
+  btn.disabled = true;
+  btn.textContent = "Scanning…";
+  const list = document.getElementById('allList');
+  list.innerHTML = '';
+  const progressFill = document.getElementById('allProgressFill');
+  document.getElementById('allProgress').style.display = 'block';
+
+  try {
+    const owners = await getVaultList();
+    setText('allScanInfo', owners.length + ' total vaults');
+    const results = [];
+    for (let i = 0; i < owners.length; i += BATCH_SIZE) {
+      const batch = owners.slice(i, i + BATCH_SIZE);
+      const data = await Promise.all(batch.map(loadVaultInfo));
+      results.push(...data);
+      progressFill.style.width = ((i + batch.length) / owners.length * 100) + '%';
+    }
+    results.sort((a, b) => Number(a.ratio) - Number(b.ratio));
+    if (results.length === 0) {
+      list.innerHTML = '<div class="empty-state">No vaults found.</div>';
+    } else {
+      results.forEach(v => list.appendChild(buildVaultRow(v, 'all')));
+    }
+  } catch(e) { toast(parseRevert(e), "err"); }
+
+  btn.disabled = false;
+  btn.textContent = "Scan All Vaults";
+  document.getElementById('allProgress').style.display = 'none';
+}
+
+function buildVaultRow(v, mode) {
+  const div = document.createElement('div');
+  const ratio = Number(v.ratio || 0n);
+  const crStr = ratio > 99999 ? '∞' : ratio + '%';
+  const crCls  = ratio < 110 ? 'risk' : ratio < 150 ? 'warn' : 'safe';
+  const collETH = (Number(ethers.formatEther(v.collateral || 0n))).toFixed(4);
+  const debtAmt = (Number(ethers.formatEther(v.debt || 0n))).toFixed(2);
+  const collUSD = '$' + (Number(ethers.formatEther(v.collUSD || 0n))).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2});
+
+  let rowClass = 'vault-row';
+  let statusLabel = 'Safe', statusClass = 'safe';
+  let bonusStr = '—';
+
+  if (v.isZombie) {
+    rowClass += ' zombie'; statusLabel = 'Zombie'; statusClass = 'zombie';
+  } else if (v.canLiquidate) {
+    rowClass += ' liquidatable'; statusLabel = 'Liquidatable'; statusClass = 'liquidatable';
+    bonusStr = ((v.bonusBps || 0n) > 0n ? (Number(v.bonusBps) / 100).toFixed(1) + '% bonus' : '—');
+  } else if (v.debt > 0n && ratio < 110 && !v.canLiquidate) {
+    // Just at edge
+  }
+
+  const shortAddr = v.address.slice(0,6) + '…' + v.address.slice(-4);
+
+  div.className = rowClass;
+  div.innerHTML = `
+    <div class="vr-top">
+      <span class="vr-addr">${shortAddr} <span style="font-size:0.85em;color:var(--dim)">(${v.address.slice(0,8)}…)</span></span>
+      <span class="vr-status ${statusClass}">${statusLabel}</span>
+    </div>
+    <div class="vr-stats">
+      <div class="vr-stat"><div class="vr-stat-label">Collateral</div><div class="vr-stat-val">${collETH} ETH</div></div>
+      <div class="vr-stat"><div class="vr-stat-label">Coll Value</div><div class="vr-stat-val">${collUSD}</div></div>
+      <div class="vr-stat"><div class="vr-stat-label">Debt</div><div class="vr-stat-val">${debtAmt} bSUNDAI</div></div>
+      <div class="vr-stat"><div class="vr-stat-label">CR</div><div class="vr-stat-val ${crCls}">${crStr}</div></div>
+    </div>
+    ${(mode === 'liq' || mode === 'all') && (v.canLiquidate || v.isZombie) ? buildLiqActions(v) : ''}
+    ${(mode === 'redeem' || mode === 'all') && v.debt > 0n && !v.canLiquidate && !v.isZombie ? buildRedeemActions(v) : ''}
+  `;
+  return div;
+}
+
+function buildLiqActions(v) {
+  if (v.isZombie) {
+    return `<div class="vr-actions"><button class="vr-btn zombie" onclick="doClearBadDebt('${v.address}')">Clear Bad Debt (Free Collateral)</button></div>`;
+  }
+  const bps = Number(v.bonusBps || 0n);
+  const bonusStr = bps > 0 ? (bps/100).toFixed(1) + '% bonus' : '';
+  return `<div class="vr-actions"><button class="vr-btn liq" onclick='openLiqModal(${JSON.stringify({address:v.address, debt:v.debt.toString(), maxRepay:v.maxRepay.toString(), bonusBps:v.bonusBps.toString(), auctionElapsed:v.auctionElapsed.toString(), ratio:v.ratio.toString()})})'>⚡ Liquidate ${bonusStr}</button></div>`;
+}
+
+function buildRedeemActions(v) {
+  return `<div class="vr-actions"><button class="vr-btn redeem" onclick='openRedeemModal(${JSON.stringify({address:v.address, debt:v.debt.toString(), price:v.price.toString()})})'>Redeem Against</button></div>`;
+}
+
+/* ─── LIQUIDATE MODAL ─── */
+function openLiqModal(v) {
+  if (!v) return;
+  currentLiq = v;
+  const debt = typeof v.debt === 'string' ? BigInt(v.debt) : v.debt;
+  const bonusBps = typeof v.bonusBps === 'string' ? BigInt(v.bonusBps) : (v.bonusBps || 0n);
+  const auctionElapsed = typeof v.auctionElapsed === 'string' ? BigInt(v.auctionElapsed) : (v.auctionElapsed || 0n);
+  const ratio = typeof v.ratio === 'string' ? BigInt(v.ratio) : (v.ratio || 0n);
+
+  setText('liqModalAddr', v.address);
+  setText('liqDebt', (Number(ethers.formatEther(debt))).toFixed(2) + ' bSUNDAI');
+  setText('liqCR', Number(ratio) + '%');
+  setText('liqMaxRepay', (Number(ethers.formatEther(debt))).toFixed(2) + ' bSUNDAI');
+  const bonusPct = Number(bonusBps) / 100;
+  setText('liqBonusPct', bonusPct.toFixed(1) + '%');
+  setText('liqBonusVal', bonusPct.toFixed(1) + '%');
+
+  const elapsedSec = Number(auctionElapsed);
+  const auctionDur = 3 * 3600;
+  const pct = Math.min(100, (elapsedSec / auctionDur) * 100);
+  document.getElementById('liqBonusFill').style.width = (100 - pct) + '%';
+  const mins = Math.floor(elapsedSec / 60), secs = elapsedSec % 60;
+  setText('liqElapsedText', mins + 'm ' + secs + 's elapsed');
+
+  document.getElementById('liqAmount').value = '';
+  setText('liqETHOut', '—');
+  setText('liqBonusOut', '—');
+  document.getElementById('liqModal').classList.add('open');
+}
+function closeLiqModal() { document.getElementById('liqModal').classList.remove('open'); currentLiq = null; }
+
+function previewLiq() {
+  const amt = parseFloat(document.getElementById('liqAmount').value) || 0;
+  if (amt <= 0 || ethPrice <= 0) { setText('liqETHOut', '—'); setText('liqBonusOut', '—'); return; }
+  const baseETH = amt / ethPrice;
+  const bonusBps = currentLiq ? Number(typeof currentLiq.bonusBps === 'string' ? BigInt(currentLiq.bonusBps) : currentLiq.bonusBps) : 0;
+  const bonusETH = baseETH * bonusBps / 10000;
+  setText('liqETHOut', (baseETH + bonusETH).toFixed(6) + ' ETH');
+  setText('liqBonusOut', bonusETH.toFixed(6) + ' ETH');
+}
+
+function fillLiqMax() {
+  if (!currentLiq) return;
+  const debt = typeof currentLiq.debt === 'string' ? BigInt(currentLiq.debt) : currentLiq.debt;
+  document.getElementById('liqAmount').value = Number(ethers.formatEther(debt)).toFixed(2);
+  previewLiq();
+}
+
+async function doLiquidate() {
+  if (!signer || !currentLiq) return toast("No vault selected", "err");
+  const amtStr = document.getElementById('liqAmount').value.trim();
+  if (!amtStr || parseFloat(amtStr) <= 0) return toast("Enter amount", "err");
+  try {
+    const val = ethers.parseEther(amtStr);
+    const allowance = await tokenC.allowance(userAddr, VAULT_ADDR);
+    if (allowance < val) {
+      toast("Approving bSUNDAI…", "info");
+      const tx = await tokenC.approve(VAULT_ADDR, val * 10n);
+      await tx.wait();
+      toast("Approved ✓", "ok");
+    }
+    toast("Liquidating…", "info");
+    const tx = await vaultC.liquidate(currentLiq.address, val);
+    await tx.wait();
+    toast("Liquidated ✓", "ok");
+    closeLiqModal();
+    await refreshBar();
+  } catch(e) { toast(parseRevert(e), "err"); }
+}
+
+/* ─── REDEEM MODAL ─── */
+function openRedeemModal(v) {
+  if (!v) return;
+  currentRedeem = v;
+  const debt = typeof v.debt === 'string' ? BigInt(v.debt) : v.debt;
+  const price = typeof v.price === 'string' ? BigInt(v.price) : (v.price || 0n);
+
+  setText('redeemModalAddr', v.address);
+  setText('redeemVaultDebt', (Number(ethers.formatEther(debt))).toFixed(2) + ' bSUNDAI');
+  const priceUSD = Number(price) / 1e18;
+  setText('redeemETHPrice', priceUSD > 0 ? '$' + priceUSD.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}) : '—');
+  setText('redeemUserBal', (Number(ethers.formatEther(userTokenBalance))).toFixed(2) + ' bSUNDAI');
+
+  document.getElementById('redeemAmount').value = '';
+  setText('redeemETHOut', '—');
+  setText('redeemUSDOut', '—');
+  setText('redeemFee', '—');
+  document.getElementById('redeemModal').classList.add('open');
+}
+function closeRedeemModal() { document.getElementById('redeemModal').classList.remove('open'); currentRedeem = null; }
+
+function previewRedeem() {
+  const amt = parseFloat(document.getElementById('redeemAmount').value) || 0;
+  if (amt <= 0 || ethPrice <= 0) { setText('redeemETHOut','—'); setText('redeemUSDOut','—'); setText('redeemFee','—'); return; }
+  const gross = amt / ethPrice;
+  const fee   = gross * 0.005;
+  const net   = gross - fee;
+  setText('redeemETHOut', net.toFixed(6) + ' ETH');
+  setText('redeemUSDOut', '$' + (net * ethPrice).toFixed(2));
+  setText('redeemFee', fee.toFixed(6) + ' ETH (0.5%)');
+}
+
+function fillRedeemMax() {
+  if (!currentRedeem) return;
+  const debt = typeof currentRedeem.debt === 'string' ? BigInt(currentRedeem.debt) : currentRedeem.debt;
+  const maxAmt = debt < userTokenBalance ? debt : userTokenBalance;
+  document.getElementById('redeemAmount').value = Math.max(100, Number(ethers.formatEther(maxAmt))).toFixed(2);
+  previewRedeem();
+}
+
+async function doRedeem() {
+  if (!signer || !currentRedeem) return toast("No vault selected", "err");
+  const amtStr = document.getElementById('redeemAmount').value.trim();
+  if (!amtStr || parseFloat(amtStr) < 100) return toast("Minimum 100 bSUNDAI", "err");
+  try {
+    const val = ethers.parseEther(amtStr);
+    const allowance = await tokenC.allowance(userAddr, VAULT_ADDR);
+    if (allowance < val) {
+      toast("Approving bSUNDAI…", "info");
+      const tx = await tokenC.approve(VAULT_ADDR, val * 10n);
+      await tx.wait();
+      toast("Approved ✓", "ok");
+    }
+    toast("Redeeming…", "info");
+    const tx = await vaultC.redeem(val, currentRedeem.address);
+    await tx.wait();
+    toast("Redeemed! ETH received ✓", "ok");
+    closeRedeemModal();
+    await refreshBar();
+  } catch(e) { toast(parseRevert(e), "err"); }
+}
+
+/* ─── LOOKUP ─── */
+async function doLookup() {
+  if (!vaultC) return toast("Connect wallet first", "err");
+  const addr = document.getElementById('lookupInput').value.trim();
+  if (!ethers.isAddress(addr)) return toast("Enter valid address", "err");
+  try {
+    toast("Loading…", "info");
+    const [info, liqInfo, repayNeeded, isZombie] = await Promise.all([
+      vaultC.vaultInfo(addr),
+      vaultC.liquidationInfo(addr),
+      vaultC.repayToHealth(addr),
+      vaultC.isZombieVault(addr)
+    ]);
+
+    const ratio = Number(info.ratio);
+    const ratioStr = ratio > 99999 ? '∞' : ratio + '%';
+
+    setText('lrColl', (Number(ethers.formatEther(info.collateral))).toFixed(4) + ' ETH');
+    setText('lrDebt', (Number(ethers.formatEther(info.debt))).toFixed(2) + ' bSUNDAI');
+    setText('lrCollUSD', '$' + (Number(ethers.formatEther(info.collateralUSD))).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}));
+    document.getElementById('lrCR').textContent = ratioStr;
+    document.getElementById('lrCR').className = 'lr-val ' + (ratio < 110 ? 'risk' : ratio < 150 ? 'warn' : 'safe');
+    setText('lrMintable', (Number(ethers.formatEther(info.mintable))).toFixed(2) + ' bSUNDAI');
+    setText('lrOracle', info.oracleHealthy ? '✓ Fresh' : '⚠ Stale');
+    setText('lrBonus', liqInfo.canLiquidate ? (Number(liqInfo.bonusBps)/100).toFixed(1) + '%' : '—');
+    setText('lrRepayNeeded', (Number(ethers.formatEther(repayNeeded))).toFixed(2) + ' bSUNDAI');
+    setText('lrZombie', isZombie ? '⚠ Yes' : 'No');
+
+    currentLookup = {
+      address: addr,
+      debt: info.debt.toString(),
+      price: info.price.toString(),
+      bonusBps: liqInfo.bonusBps.toString(),
+      auctionElapsed: liqInfo.auctionElapsed.toString(),
+      ratio: info.ratio.toString(),
+      maxRepay: liqInfo.maxRepay.toString()
+    };
+
+    document.getElementById('lrLiqBtn').style.display = liqInfo.canLiquidate ? 'block' : 'none';
+    document.getElementById('lrRedeemBtn').style.display = info.debt > 0n ? 'block' : 'none';
+    document.getElementById('lrZombieBtn').style.display = isZombie ? 'block' : 'none';
+    document.getElementById('lookupResult').style.display = 'block';
+    toast("", "");
+  } catch(e) { toast(parseRevert(e), "err"); }
+}
+
+/* ─── CLEAR BAD DEBT ─── */
+async function doClearBadDebt(addr) {
+  if (!signer) return toast("Connect wallet first", "err");
+  if (!addr || !ethers.isAddress(addr)) return toast("Invalid address", "err");
+  try {
+    toast("Clearing bad debt…", "info");
+    const tx = await vaultC.clearBadDebt(addr);
+    await tx.wait();
+    toast("Bad debt cleared. Collateral received ✓", "ok");
+    await refreshBar();
+  } catch(e) { toast(parseRevert(e), "err"); }
+}
+
+/* ─── TABS ─── */
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const panel = document.getElementById('tab-' + name);
+  if (panel) panel.classList.add('active');
+  const order = ['liquidate','redeem','allvaults','lookup'];
+  const idx = order.indexOf(name);
+  document.querySelectorAll('.tab')[idx]?.classList.add('active');
+}
+
+/* ─── HELPERS ─── */
+function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+function parseRevert(e) {
+  const msg = e?.info?.error?.message || e?.reason || e?.message || '';
+  const m = msg.match(/reason="([^"]+)"/)?.[1] || msg.match(/reverted: (.+)/)?.[1] || msg.split('\n')[0];
+  return m ? m.slice(0, 120) : "Transaction failed";
+}
+let toastTimer;
+function toast(msg, type='info') {
+  const el = document.getElementById('toast');
+  if (!msg) { el.style.display='none'; return; }
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  el.style.display = 'inline-block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.style.display='none'; }, 5000);
+}
+
+/* ─── CANVAS ─── */
+function initCanvas() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  function spawn() {
+    particles = [];
+    const n = Math.floor(W * H / 20000);
+    for (let i = 0; i < n; i++) {
+      particles.push({ x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.2+0.2, a:Math.random()*Math.PI*2, speed:Math.random()*0.12+0.02, drift:(Math.random()-0.5)*0.006, op:Math.random()*0.4+0.1, ph:Math.random()*Math.PI*2, gold:Math.random()>0.45 });
+    }
+  }
+  let t=0;
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    const grad = ctx.createRadialGradient(W*0.8,H*0.9,0,W*0.8,H*0.9,Math.min(W,H)*0.6);
+    grad.addColorStop(0,'rgba(255,100,0,0.035)'); grad.addColorStop(1,'transparent');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+    t+=0.007;
+    particles.forEach(p=>{
+      p.x+=Math.cos(p.a)*p.speed; p.y+=Math.sin(p.a)*p.speed*0.35; p.a+=p.drift;
+      if(p.x<-5)p.x=W+5; if(p.x>W+5)p.x=-5; if(p.y<-5)p.y=H+5; if(p.y>H+5)p.y=-5;
+      const op = p.op + Math.sin(t+p.ph)*0.1;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle = p.gold ? `rgba(255,195,40,${op})` : `rgba(255,120,0,${op*0.55})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize(); spawn(); draw();
+  window.addEventListener('resize',()=>{ resize(); spawn(); });
+}
+
+/* ─── INIT ─── */
+window.addEventListener('DOMContentLoaded', () => {
+  initCanvas();
+  loadABIs().catch(()=>{});
+  if (window.ethereum) {
+    window.ethereum.on('accountsChanged', () => location.reload());
+    window.ethereum.on('chainChanged', () => location.reload());
+  }
+});
+</script>
+</body>
+</html>

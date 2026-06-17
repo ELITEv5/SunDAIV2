@@ -1,0 +1,21 @@
+[
+  {"type":"function","name":"peekPrice","inputs":[],"outputs":[{"name":"price","type":"uint256"},{"name":"timestamp","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"getPriceWithTimestamp","inputs":[],"outputs":[{"name":"price","type":"uint256"},{"name":"timestamp","type":"uint256"}],"stateMutability":"nonpayable"},
+  {"type":"function","name":"refreshPrice","inputs":[],"outputs":[],"stateMutability":"nonpayable"},
+  {"type":"function","name":"getPriceStatus","inputs":[],"outputs":[{"name":"currentPrice","type":"uint256"},{"name":"rawPrice","type":"uint256"},{"name":"targetPrice","type":"uint256"},{"name":"_inConfirmation","type":"bool"},{"name":"_confirmStart","type":"uint256"},{"name":"_isStepping","type":"bool"},{"name":"chainlinkWarningActive","type":"bool"},{"name":"chainlinkLiquidationEnabled","type":"bool"}],"stateMutability":"view"},
+  {"type":"function","name":"getSourceStatus","inputs":[],"outputs":[{"name":"source","type":"uint8"},{"name":"chainlinkPrice","type":"uint256"},{"name":"twapPrice","type":"uint256"},{"name":"divergenceBps","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"isChainlinkLiquidationEnabled","inputs":[],"outputs":[{"type":"bool"}],"stateMutability":"view"},
+  {"type":"function","name":"chainlinkWarningElapsed","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"getChainlinkPrice","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"getTWAPPrice","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"getUSDCPrice","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"isUSDCDepegged","inputs":[],"outputs":[{"type":"bool"}],"stateMutability":"view"},
+  {"type":"function","name":"isOracleDead","inputs":[],"outputs":[{"type":"bool"}],"stateMutability":"view"},
+  {"type":"function","name":"getPoolPrice","inputs":[{"name":"poolIndex","type":"uint8"}],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"committedPrice","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"committedTime","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"pendingTarget","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"inConfirmation","inputs":[],"outputs":[{"type":"bool"}],"stateMutability":"view"},
+  {"type":"function","name":"chainlinkWarningStart","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"VERSION","inputs":[],"outputs":[{"type":"string"}],"stateMutability":"view"}
+]

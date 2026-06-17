@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>pSunDAI V7 — PulseChain CDP</title>
+<title>pSunDAI — PulseChain CDP</title>
+<meta name="description" content="Autonomous, ownerless, immutable CDP on PulseChain. Mint pSunDAI against PLS collateral.">
+<meta name="theme-color" content="#f5c842">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="pSunDAI">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="sundailogo.png">
+<link rel="manifest" href="manifest.json">
 <script src="ethers.umd.min.js"></script>
 <style>
   :root {
@@ -231,6 +239,26 @@
   }
   .auto-info p { font-size: .82rem; color: var(--muted); line-height: 1.5; }
   .auto-info .preview { font-size: .9rem; color: var(--gold); margin-top: 8px; }
+
+  /* ── VERIFIED CONTRACTS ─────────────────────────────────────────── */
+  .ctr-block { padding: 9px 0; border-bottom: 1px solid var(--border); }
+  .ctr-block:last-of-type { border-bottom: none; margin-bottom: 10px; }
+  .ctr-name { font-size: .68rem; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .07em; }
+  .ctr-addr { font-family: monospace; font-size: .72rem; color: var(--amber); word-break: break-all; margin-bottom: 5px; line-height: 1.45; }
+  .ctr-links { display: flex; gap: 8px; align-items: center; }
+  .cr-copy { padding: 2px 9px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: .68rem; transition: all .15s; }
+  .cr-copy:hover { border-color: var(--amber); color: var(--gold); }
+  .cr-scan { font-size: .72rem; color: var(--info); text-decoration: none; }
+  .cr-scan:hover { text-decoration: underline; }
+  .trust-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+  .trust-badge { font-size: .63rem; padding: 2px 7px; border-radius: 20px; border: 1px solid var(--border); color: var(--muted); }
+
+  /* ── FOOTER ──────────────────────────────────────────────────────── */
+  footer { text-align: center; padding: 16px 16px 30px; font-size: .75rem; color: var(--muted); border-top: 1px solid var(--border); position: relative; z-index: 1; }
+  .footer-links { margin-bottom: 6px; }
+  .footer-links a { color: var(--muted); text-decoration: none; margin: 0 8px; }
+  .footer-links a:hover { color: var(--gold); }
+  .footer-trust { font-size: .68rem; color: rgba(138,122,90,.38); letter-spacing: .04em; line-height: 1.9; }
 
   /* ── SIDE COLUMN ─────────────────────────────────────────────────── */
   .side-col { display: flex; flex-direction: column; gap: 16px; }
@@ -567,8 +595,58 @@
         <div style="margin-top:10px;color:var(--muted)">Target: 175%+ to absorb PLS volatility comfortably.</div>
       </div>
     </div>
+
+    <!-- VERIFIED CONTRACTS -->
+    <div class="panel">
+      <div class="panel-title">Verified Contracts · PulseChain</div>
+
+      <div class="ctr-block">
+        <div class="ctr-name">pSunDAI Token (ERC-20)</div>
+        <div class="ctr-addr">0x0b5701078675870AaA121Da2AECD906A1720B008</div>
+        <div class="ctr-links">
+          <button class="cr-copy" onclick="navigator.clipboard.writeText('0x0b5701078675870AaA121Da2AECD906A1720B008')">Copy</button>
+          <a class="cr-scan" href="https://scan.pulsechain.com/address/0x0b5701078675870AaA121Da2AECD906A1720B008" target="_blank" rel="noopener">View on PulseScan ↗</a>
+        </div>
+      </div>
+
+      <div class="ctr-block">
+        <div class="ctr-name">Vault V7</div>
+        <div class="ctr-addr">0x14d98E5Ad664964C9F25fc598Ca3835c172E0BEC</div>
+        <div class="ctr-links">
+          <button class="cr-copy" onclick="navigator.clipboard.writeText('0x14d98E5Ad664964C9F25fc598Ca3835c172E0BEC')">Copy</button>
+          <a class="cr-scan" href="https://scan.pulsechain.com/address/0x14d98E5Ad664964C9F25fc598Ca3835c172E0BEC" target="_blank" rel="noopener">View on PulseScan ↗</a>
+        </div>
+      </div>
+
+      <div class="ctr-block">
+        <div class="ctr-name">Oracle V7 (5-Pool PulseX TWAP)</div>
+        <div class="ctr-addr">0x678a0bb68Fd89b474aFb097c2A18c4657dfEdbB1</div>
+        <div class="ctr-links">
+          <button class="cr-copy" onclick="navigator.clipboard.writeText('0x678a0bb68Fd89b474aFb097c2A18c4657dfEdbB1')">Copy</button>
+          <a class="cr-scan" href="https://scan.pulsechain.com/address/0x678a0bb68Fd89b474aFb097c2A18c4657dfEdbB1" target="_blank" rel="noopener">View on PulseScan ↗</a>
+        </div>
+      </div>
+
+      <div class="trust-badges">
+        <span class="trust-badge">No admin keys</span>
+        <span class="trust-badge">No proxy</span>
+        <span class="trust-badge">No pause</span>
+        <span class="trust-badge">No upgrade path</span>
+        <span class="trust-badge">Chain ID 369</span>
+      </div>
+    </div>
   </div>
 </main>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://scan.pulsechain.com/address/0x0b5701078675870AaA121Da2AECD906A1720B008" target="_blank" rel="noopener">pSunDAI Token</a>
+    <a href="https://scan.pulsechain.com/address/0x14d98E5Ad664964C9F25fc598Ca3835c172E0BEC" target="_blank" rel="noopener">Vault V7</a>
+    <a href="https://scan.pulsechain.com/address/0x678a0bb68Fd89b474aFb097c2A18c4657dfEdbB1" target="_blank" rel="noopener">Oracle V7</a>
+    <a href="liquidations.html">Vault Dashboard</a>
+  </div>
+  <div class="footer-trust">pSunDAI V7 · PulseChain (Chain ID 369) · No admin keys · Immutable after deployment · No proxy contracts · No pause function · Experimental software — use at your own risk</div>
+</footer>
 
 <!-- HOW-TO MODAL -->
 <div id="modal">
@@ -1198,6 +1276,12 @@ async function doSettle() {
     showStatus("Debt settled.", "ok");
     await refreshSystem();
   } catch(e) { showStatus(e.reason || e.message || "Failed", "err"); }
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch(() => {});
+  });
 }
 </script>
 </body>

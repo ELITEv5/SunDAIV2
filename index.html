@@ -210,10 +210,12 @@
   }
   .max-btn {
     position: absolute; right: 52px; top: 50%; transform: translateY(-50%);
-    font-size: .7rem; padding: 2px 8px; border-radius: 4px;
+    font-size: .68rem; padding: 2px 7px; border-radius: 4px; white-space: nowrap;
     background: rgba(245,200,66,.15); border: 1px solid rgba(245,200,66,.3);
-    color: var(--gold); cursor: pointer;
+    color: var(--gold); cursor: pointer; font-weight: 600;
+    transition: background .15s;
   }
+  .max-btn:hover { background: rgba(245,200,66,.28); }
   .hint { font-size: .73rem; color: var(--muted); margin-bottom: 12px; }
   .hint span { color: var(--amber); }
 
@@ -465,10 +467,11 @@
         </div>
         <label>PLS Amount</label>
         <div class="input-wrap">
+          <button class="max-btn" onclick="setMaxAutoMint()">MAX</button>
           <input type="number" id="autoAmt" placeholder="0.0" oninput="previewAuto()" min="0" step="any">
           <span class="input-unit">PLS</span>
         </div>
-        <div class="hint">You receive: ~<span id="autoMintPreview">0</span> pSunDAI · CR: 155%</div>
+        <div class="hint">Wallet: <span id="plsWalletBal">—</span> · You receive: ~<span id="autoMintPreview">0</span> pSunDAI</div>
         <button class="btn btn-primary" onclick="doAutoMint()">1-Click Auto Borrow</button>
       </div>
 
@@ -476,13 +479,16 @@
       <div class="tab-pane" id="tab-deposit">
         <label>Deposit native PLS</label>
         <div class="input-wrap">
+          <button class="max-btn" onclick="setMaxDepositPLS()">MAX</button>
           <input type="number" id="depPLSAmt" placeholder="0.0" min="0" step="any">
           <span class="input-unit">PLS</span>
         </div>
+        <div class="hint">Wallet balance: <span id="plsWalletBalDep">—</span></div>
         <button class="btn btn-primary" onclick="doDepositPLS()">Deposit PLS</button>
         <div style="margin:14px 0;text-align:center;font-size:.75rem;color:var(--muted)">— or deposit WPLS —</div>
-        <label>Deposit WPLS (requires approval)</label>
+        <label>Deposit WPLS (requires one-time approval)</label>
         <div class="input-wrap">
+          <button class="max-btn" onclick="setMaxWPLS()">MAX</button>
           <input type="number" id="depWPLSAmt" placeholder="0.0" min="0" step="any">
           <span class="input-unit">WPLS</span>
         </div>
@@ -498,7 +504,7 @@
           <input type="number" id="mintAmt" placeholder="0.0" oninput="previewMint()" min="0" step="any">
           <span class="input-unit" style="right:12px">pSunDAI</span>
         </div>
-        <div class="hint">After mint CR: <span id="afterMintCR">—</span></div>
+        <div class="hint">After mint CR: <span id="afterMintCR">—</span> · Mintable: <span id="mintableHint">—</span></div>
         <button class="btn btn-primary" onclick="doMint()">Mint pSunDAI</button>
       </div>
 
@@ -507,11 +513,16 @@
         <label>Repay pSunDAI</label>
         <div class="input-wrap">
           <button class="max-btn" onclick="setMaxRepay()">MAX</button>
-          <input type="number" id="repayAmt" placeholder="0.0" min="0" step="any">
+          <input type="number" id="repayAmt" placeholder="0.0" oninput="previewRepay()" min="0" step="any">
           <span class="input-unit" style="right:12px">pSunDAI</span>
         </div>
-        <div class="hint">pSunDAI balance: <span id="repayBalHint">—</span></div>
+        <div class="hint">Balance: <span id="repayBalHint">—</span> · After repay CR: <span id="afterRepayCR">—</span></div>
+        <div id="repayToSafeRow" style="display:none;margin-bottom:10px;padding:10px;background:rgba(255,152,0,.08);border:1px solid rgba(255,152,0,.3);border-radius:8px;font-size:.82rem">
+          <span style="color:var(--warn)">Vault is at risk.</span> Repay <strong id="toSafeAmt" style="color:var(--gold)">—</strong> pSunDAI to restore to 150% CR.
+          <button onclick="setRepayToSafe()" style="margin-left:8px;padding:3px 10px;border-radius:5px;border:1px solid var(--amber);background:rgba(245,200,66,.1);color:var(--gold);cursor:pointer;font-size:.8rem;font-weight:600">Fill</button>
+        </div>
         <button class="btn btn-primary" onclick="doRepay()">Repay</button>
+        <button class="btn btn-secondary" onclick="doRepayToSafe()">Repay to 150% CR — Restore Safety</button>
         <button class="btn btn-secondary" onclick="doRepayAndWithdraw()">Repay All &amp; Withdraw PLS</button>
       </div>
 
@@ -519,13 +530,16 @@
       <div class="tab-pane" id="tab-withdraw">
         <label>Withdraw PLS (native)</label>
         <div class="input-wrap">
-          <input type="number" id="withPLSAmt" placeholder="0.0" min="0" step="any">
+          <button class="max-btn" onclick="setMaxWithdraw()">MAX SAFE</button>
+          <input type="number" id="withPLSAmt" placeholder="0.0" oninput="previewWithdraw()" min="0" step="any">
           <span class="input-unit">PLS</span>
         </div>
+        <div class="hint">Max safe withdrawal: <span id="maxWithdrawHint">—</span> · After withdraw CR: <span id="afterWithdrawCR">—</span></div>
         <button class="btn btn-primary" onclick="doWithdrawPLS()">Withdraw PLS</button>
-        <div style="margin:14px 0;text-align:center;font-size:.75rem;color:var(--muted)">— or withdraw WPLS —</div>
+        <div style="margin:14px 0;text-align:center;font-size:.75rem;color:var(--muted)">— or withdraw as WPLS —</div>
         <label>Withdraw WPLS</label>
         <div class="input-wrap">
+          <button class="max-btn" onclick="setMaxWithdrawWPLS()">MAX SAFE</button>
           <input type="number" id="withWPLSAmt" placeholder="0.0" min="0" step="any">
           <span class="input-unit">WPLS</span>
         </div>
@@ -991,8 +1005,41 @@ async function refreshVault() {
     document.getElementById("sColUSD").textContent = fmtUSD(collateralUSD);
     document.getElementById("sBalance").textContent= fmt18(tokenBal) + " pSunDAI";
     document.getElementById("sMintable").textContent = fmt18(mintable) + " pSunDAI";
-    document.getElementById("sRepayToSafe").textContent =
-      repayNeeded > ZERO ? fmt18(repayNeeded) + " pSunDAI" : "Safe";
+    document.getElementById("mintableHint").textContent = fmt18(mintable) + " pSunDAI";
+    document.getElementById("repayBalHint").textContent = fmt18(tokenBal) + " pSunDAI";
+
+    const repayStr = repayNeeded > ZERO ? fmt18(repayNeeded) + " pSunDAI" : "Safe ✓";
+    document.getElementById("sRepayToSafe").textContent = repayStr;
+
+    // Show/hide the "Repay to Safe" helper row in the Repay tab
+    const safeRow = document.getElementById("repayToSafeRow");
+    if (repayNeeded > ZERO) {
+      document.getElementById("toSafeAmt").textContent = fmt18(repayNeeded);
+      safeRow.style.display = "block";
+    } else {
+      safeRow.style.display = "none";
+    }
+
+    // Max safe withdraw calculation
+    let maxWd = ZERO;
+    if (debt === ZERO) {
+      maxWd = collateral;
+    } else if (price > ZERO) {
+      const minColl = (debt * 150n * ethers.parseUnits("1", 18)) / (100n * price);
+      maxWd = collateral > minColl ? collateral - minColl : ZERO;
+    }
+    document.getElementById("maxWithdrawHint").textContent = fmt18(maxWd) + " PLS";
+    // Store for setMaxWithdraw
+    window._maxWithdraw = maxWd;
+
+    // PLS wallet balance
+    try {
+      const plsBal = await provider.getBalance(account);
+      const plsStr = fmt18(plsBal) + " PLS";
+      document.getElementById("plsWalletBal").textContent = plsStr;
+      document.getElementById("plsWalletBalDep").textContent = plsStr;
+      window._plsWalletBal = plsBal;
+    } catch(_) {}
 
     const crStr = fmtCR(ratio);
     document.getElementById("sCR").textContent = crStr;
@@ -1109,6 +1156,89 @@ async function setMaxRepay() {
     const bal = await token.balanceOf(account);
     const max = debt < bal ? debt : bal;
     document.getElementById("repayAmt").value = ethers.formatUnits(max, 18);
+    await previewRepay();
+  } catch(_) {}
+}
+
+async function setRepayToSafe() {
+  if (!vault || !account) return;
+  try {
+    const needed = await vault.repayToHealth(account);
+    if (needed === ZERO) return showStatus("Vault is already safe (CR ≥ 150%)", "ok");
+    document.getElementById("repayAmt").value = ethers.formatUnits(needed, 18);
+    await previewRepay();
+  } catch(_) {}
+}
+
+async function previewRepay() {
+  if (!vault || !account) return;
+  const amt = parseFloat(document.getElementById("repayAmt").value) || 0;
+  const el = document.getElementById("afterRepayCR");
+  if (amt <= 0) { el.textContent = "—"; return; }
+  try {
+    const [collateral, debt,,,,, price] = await vault.vaultInfo(account);
+    const repayVal = ethers.parseUnits(amt.toString(), 18);
+    const newDebt = debt > repayVal ? debt - repayVal : ZERO;
+    if (newDebt === ZERO) { el.textContent = "∞ (debt cleared)"; return; }
+    const newCR = (collateral * price * 100n) / (newDebt * ethers.parseUnits("1", 18));
+    el.textContent = fmtCR(newCR);
+    el.style.color = Number(newCR) >= 150 ? "var(--safe)" : Number(newCR) >= 110 ? "var(--warn)" : "var(--danger)";
+  } catch(_) { el.textContent = "—"; }
+}
+
+async function setMaxWithdraw() {
+  document.getElementById("withPLSAmt").value =
+    ethers.formatUnits(window._maxWithdraw || ZERO, 18);
+  await previewWithdraw();
+}
+
+async function setMaxWithdrawWPLS() {
+  document.getElementById("withWPLSAmt").value =
+    ethers.formatUnits(window._maxWithdraw || ZERO, 18);
+}
+
+async function previewWithdraw() {
+  if (!vault || !account) return;
+  const amt = parseFloat(document.getElementById("withPLSAmt").value) || 0;
+  const el = document.getElementById("afterWithdrawCR");
+  if (amt <= 0) { el.textContent = "—"; return; }
+  try {
+    const [collateral, debt,,,,, price] = await vault.vaultInfo(account);
+    if (debt === ZERO) { el.textContent = "No debt — CR ∞"; return; }
+    const wdVal = ethers.parseUnits(amt.toString(), 18);
+    const newColl = collateral > wdVal ? collateral - wdVal : ZERO;
+    const newCR = (newColl * price * 100n) / (debt * ethers.parseUnits("1", 18));
+    el.textContent = fmtCR(newCR);
+    el.style.color = Number(newCR) >= 150 ? "var(--safe)" : Number(newCR) >= 110 ? "var(--warn)" : "var(--danger)";
+  } catch(_) { el.textContent = "—"; }
+}
+
+async function setMaxAutoMint() {
+  const bal = window._plsWalletBal;
+  if (!bal) return;
+  const gasBuffer = ethers.parseUnits("2000", 18);
+  const max = bal > gasBuffer ? bal - gasBuffer : ZERO;
+  document.getElementById("autoAmt").value = ethers.formatUnits(max, 18);
+  await previewAuto();
+}
+
+async function setMaxDepositPLS() {
+  const bal = window._plsWalletBal;
+  if (!bal) return;
+  const gasBuffer = ethers.parseUnits("2000", 18);
+  const max = bal > gasBuffer ? bal - gasBuffer : ZERO;
+  document.getElementById("depPLSAmt").value = ethers.formatUnits(max, 18);
+}
+
+async function setMaxWPLS() {
+  if (!vault || !account) return;
+  try {
+    const wplsAddr = await vault.wpls();
+    const wplsContract = new ethers.Contract(wplsAddr, [
+      {"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}
+    ], provider);
+    const bal = await wplsContract.balanceOf(account);
+    document.getElementById("depWPLSAmt").value = ethers.formatUnits(bal, 18);
   } catch(_) {}
 }
 
@@ -1200,6 +1330,19 @@ async function doRepay() {
     const tx = await vault.repay(ethers.parseUnits(amt, 18));
     await tx.wait();
     showStatus("Repaid.", "ok");
+    await refreshAll();
+  } catch(e) { showStatus(e.reason || e.message || "Transaction failed", "err"); }
+}
+
+async function doRepayToSafe() {
+  if (!ensureWallet()) return;
+  try {
+    const needed = await vault.repayToHealth(account);
+    if (needed === ZERO) return showStatus("Vault is already safe (CR ≥ 150%)", "ok");
+    showStatus(`Repaying ${fmt18(needed)} pSunDAI to restore 150% CR…`, "wait");
+    const tx = await vault.repay(needed);
+    await tx.wait();
+    showStatus("Vault restored to safe CR.", "ok");
     await refreshAll();
   } catch(e) { showStatus(e.reason || e.message || "Transaction failed", "err"); }
 }

@@ -92,10 +92,11 @@ The oracle is a public utility — no vault-only gating. Anyone can call `refres
 | `currentPrice` | Committed price — used by vault for safety checks |
 | `rawPrice` | Live unstepped price from primary/backup source |
 | `targetPrice` | Target being confirmed or stepped toward |
-| `inConfirmation` | Waiting for confirmation period to complete |
-| `isStepping` | Stepping toward target after confirmation |
-| `chainlinkWarningActive` | Chainlink is 3%+ below committed |
-| `chainlinkLiquidationEnabled` | Warning active for 30+ min — liquidations use Chainlink |
+| `_inConfirmation` | Waiting for confirmation period to complete |
+| `_confirmStart` | Timestamp when current confirmation period started |
+| `_isStepping` | Stepping toward target after confirmation completes |
+| `chainlinkWarningActive` | Chainlink is 3%+ below committed price |
+| `chainlinkLiquidationEnabled` | Warning active for 30+ min — liquidations use live Chainlink |
 
 **Dead oracle override:** If oracle is dead for 7+ days, `isOracleCatastrophicallyFailed()` returns true — enabling emergency repay and withdraw.
 
@@ -128,12 +129,11 @@ CR = (ETH Collateral × ETH Price) ÷ bSunDAI Debt × 100%
 
 | CR | Status | Description |
 |----|--------|-------------|
-| Above 150% | Safe | Can mint more, can withdraw. Immune to liquidation. |
-| 130–150% | At risk | Cannot mint more. Cannot be redeemed against. Add collateral. |
-| Below 150% | Redeemable | Any wallet can redeem bSunDAI against your vault at $1 oracle rate. 0.5% fee to vault owner. |
-| Below 110% | Liquidatable | Also redeemable. Liquidators repay debt and claim ETH + bonus. |
+| Above 150% | Safe | Can mint more, can withdraw. Immune to liquidation. Redeemable. |
+| 110–150% | At risk | Cannot mint more. Add collateral or repay. Still redeemable. |
+| Below 110% | Liquidatable | Liquidators repay debt and claim ETH + bonus. Also redeemable. |
 
-> Note: Unlike some CDP protocols, bSunDAI has no redemption CR filter — any vault with sufficient debt can be redeemed against. The $1 redemption peg is always enforced.
+> **No redemption CR filter:** Unlike MakerDAO-style protocols, bSunDAI has no minimum CR requirement to redeem against a vault. Any vault with `debt ≥ redeemAmount` can be redeemed against, regardless of collateral ratio. The `_doRedeem()` function has no CR check. All vaults are always redeemable.
 
 **Recommended target:** 175%+ CR to absorb ETH price swings without entering the redeemable zone.
 

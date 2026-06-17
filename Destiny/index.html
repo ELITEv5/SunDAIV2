@@ -26,7 +26,7 @@
   --border:      rgba(255,255,255,0.06);
   --border-lit:  rgba(255,255,255,0.12);
   --text:        #c8c8d0;
-  --muted:       #555566;
+  --muted:       #8888a0;
   --mono:        'Courier New', Courier, monospace;
   --sans:        system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -937,15 +937,15 @@ body {
       <div class="card-label">Stake Your Conviction</div>
       <div class="field">
         <div class="field-label">SunDAI Amount <span id="sundaiBalance">Bal: —</span></div>
-        <input type="text" id="sundaiAmount" placeholder="0.0">
+        <input type="text" id="sundaiAmount" placeholder="optional — leave blank to skip">
       </div>
       <div class="field">
         <div class="field-label">PLP Amount (1.5× weight) <span id="plpBalance">Bal: —</span></div>
-        <input type="text" id="plpAmount" placeholder="0.0">
+        <input type="text" id="plpAmount" placeholder="optional — leave blank to skip">
       </div>
       <button class="btn-action btn-gold" onclick="approveAndStake()">Stake Assets</button>
       <button class="btn-action btn-outline" onclick="withdraw()">Withdraw</button>
-      <div class="card-note">LP tokens receive a 1.5× weight bonus. Your share % of the vault = your share % of all pSunDAI minted. Stakes lock permanently when SunDAI hits $1.</div>
+      <div class="card-note">Stake SunDAI, PLP, or both at once — leave either field blank to skip it. LP tokens receive a 1.5× weight bonus. Stakes lock permanently when SunDAI hits $1.</div>
     </div>
 
     <div class="card">
@@ -1062,12 +1062,13 @@ body {
     </div>
     <div class="mint-cta">
       <div class="mint-cta-text"><strong>Want to mint pSunDAI directly?</strong> Deposit PLS collateral in the live vault.</div>
-      <a href="https://elitev5.github.io/SunDAI/vault/index5_7.html" target="_blank" class="btn-primary">Open pSunDAI Vault →</a>
+      <a href="https://elitev5.github.io/SunDAIV2/index.html" target="_blank" class="btn-primary">Open pSunDAI Vault →</a>
     </div>
   </div>
 
   <footer class="site-footer">
     Built without governance &nbsp;·&nbsp; No admin keys &nbsp;·&nbsp; Immutable protocol &nbsp;·&nbsp; Elite Team6
+    &nbsp;·&nbsp; <a href="https://elitev5.github.io/SunDAIV2/Destiny/index.html" target="_blank" style="color:var(--muted);text-decoration:none;letter-spacing:inherit;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--muted)'">GitHub ↗</a>
   </footer>
 
 </div><!-- /wrap -->

@@ -1,0 +1,21 @@
+[
+  {"type":"function","name":"peekPriceView","inputs":[],"outputs":[{"name":"price","type":"uint256"},{"name":"timestamp","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"getPriceWithTimestamp","inputs":[],"outputs":[{"name":"price","type":"uint256"},{"name":"timestamp","type":"uint256"}],"stateMutability":"nonpayable"},
+  {"type":"function","name":"getSpotPrice","inputs":[],"outputs":[{"name":"price","type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"isSpotLiquidationEnabled","inputs":[],"outputs":[{"type":"bool"}],"stateMutability":"view"},
+  {"type":"function","name":"spotWarningElapsed","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"poke","inputs":[],"outputs":[],"stateMutability":"nonpayable"},
+  {"type":"function","name":"canPoke","inputs":[],"outputs":[{"type":"bool"}],"stateMutability":"view"},
+  {"type":"function","name":"timeUntilNextPoke","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"isStale","inputs":[{"name":"threshold","type":"uint256"}],"outputs":[{"type":"bool"}],"stateMutability":"view"},
+  {"type":"function","name":"isHealthy","inputs":[],"outputs":[{"type":"bool"}],"stateMutability":"view"},
+  {"type":"function","name":"getPriceStatus","inputs":[],"outputs":[{"name":"currentPrice","type":"uint256"},{"name":"marketPrice","type":"uint256"},{"name":"divergenceBps","type":"uint256"},{"name":"inConfirmation","type":"bool"},{"name":"confirmTimeRemaining","type":"uint256"},{"name":"targetPrice","type":"uint256"},{"name":"spotWarningActive","type":"bool"},{"name":"spotLiquidationEnabled","type":"bool"}],"stateMutability":"view"},
+  {"type":"function","name":"lastPrice","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"lastUpdateTimestamp","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"spotWarningStart","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"lastPokeTime","inputs":[],"outputs":[{"type":"uint256"}],"stateMutability":"view"},
+  {"type":"function","name":"VERSION","inputs":[],"outputs":[{"type":"string"}],"stateMutability":"view"},
+  {"type":"event","name":"PriceUpdated","inputs":[{"name":"price","type":"uint256","indexed":false},{"name":"timestamp","type":"uint256","indexed":false},{"name":"stepped","type":"bool","indexed":false}]},
+  {"type":"event","name":"SpotWarningTriggered","inputs":[{"name":"spotPrice","type":"uint256","indexed":false},{"name":"twapPrice","type":"uint256","indexed":false},{"name":"timestamp","type":"uint256","indexed":false}]},
+  {"type":"event","name":"SpotWarningCleared","inputs":[{"name":"spotPrice","type":"uint256","indexed":false},{"name":"twapPrice","type":"uint256","indexed":false}]}
+]

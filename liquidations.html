@@ -299,7 +299,7 @@
     <!-- LIQUIDATE TAB -->
     <div class="tab-pane active" id="tab-liquidate">
       <div style="margin-bottom:10px;font-size:.83rem;color:var(--muted)">
-        Scans all vaults for liquidation opportunities. Liquidatable vaults show a 5% bonus that decays to 2% over 3 hours. First mover wins.
+        Scans all vaults for liquidation opportunities. Bonus <strong style="color:var(--amber)">grows 2% → 5%</strong> over 3 hours after the auction clock starts. Call <strong>Mark</strong> to start the clock, then return later to liquidate at higher bonus.
       </div>
       <div class="scan-ctrl">
         <button class="btn btn-primary" onclick="scanLiquidatable()">Scan Liquidatable Vaults</button>
@@ -570,11 +570,12 @@ function buildLiqCard(v, spotLiqActive) {
   const bonusPct = (Number(v.bonusBps) / 100).toFixed(2);
   const elapsedSecs = Number(v.elapsed);
   const maxElapsed = 3 * 3600; // 3h
+  // pSunDAI uses a GROWING auction: bonus starts at 2% and grows to 5% over 3h.
+  // Bar shows how far through the auction — more fill = higher bonus available.
   const progress = Math.min(elapsedSecs / maxElapsed, 1);
-  // Bonus decays 5% → 2% (max to min), bar shows how far through auction
-  // Higher bar = lower bonus remaining
   const barPct = (progress * 100).toFixed(1);
-  const barColor = progress < 0.33 ? "var(--danger)" : progress < 0.66 ? "var(--warn)" : "var(--muted)";
+  const barColor = progress >= 0.66 ? "var(--safe)" : progress >= 0.33 ? "var(--warn)" : "var(--amber)";
+  const clockStarted = elapsedSecs > 0;
 
   div.innerHTML = `
     <div class="vc-top">
@@ -582,27 +583,29 @@ function buildLiqCard(v, spotLiqActive) {
       <span class="vc-cr danger">Liquidatable</span>
       ${v.atSpot ? '<span class="vc-tag spot">Spot Price</span>' : ''}
       ${v.isUnderwater ? '<span class="vc-tag zombie">Underwater</span>' : ''}
+      ${!clockStarted ? '<span class="vc-tag zombie">Clock not started</span>' : ''}
     </div>
     <div class="bonus-bar-wrap">
       <div class="bonus-bar-label">
-        <span>Liquidation Bonus: <strong style="color:var(--danger)">${bonusPct}%</strong></span>
-        <span>${fmtSecs(elapsedSecs)} elapsed</span>
+        <span>Liquidation Bonus: <strong style="color:${barColor}">${bonusPct}%</strong></span>
+        <span>${clockStarted ? fmtSecs(elapsedSecs) + " elapsed" : "Clock not started"}</span>
       </div>
       <div class="bonus-bar-track">
         <div class="bonus-bar-fill" style="width:${barPct}%;background:${barColor}"></div>
       </div>
-      <div style="font-size:.68rem;color:var(--muted);margin-top:2px">Bonus decays 5% → 2% over 3 hours</div>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:2px">Bonus grows 2% → 5% over 3 hours · ${clockStarted ? "Max at " + fmtSecs(Math.max(0, maxElapsed - elapsedSecs)) + " remaining" : "Call Mark to start clock"}</div>
     </div>
     <div class="vc-grid">
       <div class="vc-stat"><div class="sk">Debt</div><div class="sv">${fmt18(v.debt)} pSunDAI</div></div>
       <div class="vc-stat"><div class="sk">Min Repay (20%)</div><div class="sv">${fmt18(v.minRepay)} pSunDAI</div></div>
-      <div class="vc-stat"><div class="sk">Current Bonus</div><div class="sv" style="color:var(--danger)">${bonusPct}%</div></div>
+      <div class="vc-stat"><div class="sk">Current Bonus</div><div class="sv" style="color:${barColor}">${bonusPct}%</div></div>
       <div class="vc-stat"><div class="sk">Price Source</div><div class="sv">${v.atSpot ? "Spot" : "TWAP"}</div></div>
     </div>
     <div class="vc-actions">
+      ${!clockStarted ? `<button class="btn-clear" onclick="doMark('${v.addr}')">Start Clock (Mark)</button>` : ''}
       <div class="action-input">
         <input type="number" id="liq-amt-${v.addr}" placeholder="pSunDAI to repay" min="0" step="any">
-        <button class="btn-liq" onclick="doLiquidate('${v.addr}')">Liquidate</button>
+        <button class="btn-liq" onclick="doLiquidate('${v.addr}')">Liquidate ${bonusPct}%</button>
       </div>
       <button class="btn-secondary btn" style="padding:6px 14px;font-size:.8rem"
         onclick="document.getElementById('liq-amt-${v.addr}').value = ethers.formatUnits(${v.debt}n, 18)">
@@ -667,18 +670,23 @@ async function doLiquidate(targetAddr) {
   const amt = input?.value;
   if (!amt || parseFloat(amt) <= 0) return showStatus("Enter amount to repay","err");
   try {
-    const parsed = ethers.parseUnits(amt, 18);
-    const allowance = await token.allowance(account, VAULT_ADDR);
-    if (allowance < parsed) {
-      showStatus("Approving pSunDAI…","wait");
-      const appTx = await token.approve(VAULT_ADDR, ethers.MaxUint256);
-      await appTx.wait();
-    }
+    // pSunDAI vault uses onlyVault burn(from, amount) — no token approval needed
     showStatus("Liquidating…","wait");
-    const tx = await vault.liquidate(targetAddr, parsed);
+    const tx = await vault.liquidate(targetAddr, ethers.parseUnits(amt, 18));
     await tx.wait();
     showStatus("Liquidation successful. PLS sent to you.","ok");
     await refreshOracle();
+  } catch(e) { showStatus(e.reason || e.message || "Failed","err"); }
+}
+
+async function doMark(targetAddr) {
+  if (!signer) return showStatus("Connect wallet first","err");
+  try {
+    showStatus("Starting auction clock…","wait");
+    const tx = await vault.markUndercollateralized(targetAddr);
+    await tx.wait();
+    showStatus("Auction clock started. Return in ~3h for max 5% bonus.","ok");
+    await scanVaults();
   } catch(e) { showStatus(e.reason || e.message || "Failed","err"); }
 }
 

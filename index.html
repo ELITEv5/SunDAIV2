@@ -554,7 +554,7 @@
       <div style="font-size:.78rem;color:var(--muted);line-height:1.7">
         <div><span style="color:var(--safe)">▲ 150%+</span> — Safe. Can mint &amp; withdraw freely.</div>
         <div><span style="color:var(--warn)">◆ 110–150%</span> — Cannot mint. Add collateral.</div>
-        <div><span style="color:var(--danger)">▼ &lt;110%</span> — Liquidatable. Bonus starts at 5%, decays to 2% over 3 hours.</div>
+        <div><span style="color:var(--danger)">▼ &lt;110%</span> — Liquidatable. Bonus grows 2% → 5% over 3 hours from when auction clock starts.</div>
         <div style="margin-top:10px;color:var(--muted)">Target: 175%+ to absorb PLS volatility comfortably.</div>
       </div>
     </div>
@@ -584,7 +584,7 @@
     </ul>
 
     <h3>5. Liquidations</h3>
-    <p>Vaults below 110% CR can be liquidated. Bonus starts at <strong>5%</strong> immediately, decays to 2% over 3 hours — first mover wins. See <a href="liquidations.html" style="color:var(--amber)">Vault Dashboard</a> to scan and liquidate.</p>
+    <p>Vaults below 110% CR can be liquidated. Bonus <strong>grows from 2% to 5%</strong> over 3 hours after the auction clock starts. Call <code>markUndercollateralized(addr)</code> to start the clock, then liquidate later for higher bonus. See <a href="liquidations.html" style="color:var(--amber)">Vault Dashboard</a> to scan and liquidate.</p>
 
     <h3>6. Repay &amp; Withdraw</h3>
     <p>Repay pSunDAI to reduce debt. Withdraw PLS as native or WPLS. 5-minute cooldown after deposit. "Repay All &amp; Withdraw" closes position in one transaction.</p>
@@ -1085,15 +1085,9 @@ async function doRepay() {
   const amt = document.getElementById("repayAmt").value;
   if (!amt || parseFloat(amt) <= 0) return showStatus("Enter pSunDAI amount", "err");
   try {
-    const parsed = ethers.parseUnits(amt, 18);
-    const allowance = await token.allowance(account, VAULT_ADDR);
-    if (allowance < parsed) {
-      showStatus("Approving pSunDAI…", "wait");
-      const appTx = await token.approve(VAULT_ADDR, ethers.MaxUint256);
-      await appTx.wait();
-    }
+    // pSunDAI vault uses onlyVault burn(from, amount) — no token approval needed
     showStatus("Repaying…", "wait");
-    const tx = await vault.repay(parsed);
+    const tx = await vault.repay(ethers.parseUnits(amt, 18));
     await tx.wait();
     showStatus("Repaid.", "ok");
     await refreshAll();
@@ -1107,12 +1101,7 @@ async function doRepayAndWithdraw() {
     const bal = await token.balanceOf(account);
     const repayAmt = debt < bal ? debt : bal;
     if (repayAmt === ZERO) return showStatus("No debt to repay", "err");
-    const allowance = await token.allowance(account, VAULT_ADDR);
-    if (allowance < repayAmt) {
-      showStatus("Approving pSunDAI…", "wait");
-      const appTx = await token.approve(VAULT_ADDR, ethers.MaxUint256);
-      await appTx.wait();
-    }
+    // pSunDAI vault uses onlyVault burn(from, amount) — no token approval needed
     showStatus("Repaying and withdrawing…", "wait");
     const tx = await vault.repayAndAutoWithdraw(repayAmt);
     await tx.wait();
@@ -1193,15 +1182,9 @@ async function doSettle() {
   const amt = document.getElementById("settleAmt").value;
   if (!amt || parseFloat(amt) <= 0) return showStatus("Enter amount", "err");
   try {
-    const parsed = ethers.parseUnits(amt, 18);
-    const allowance = await token.allowance(account, VAULT_ADDR);
-    if (allowance < parsed) {
-      showStatus("Approving…", "wait");
-      const appTx = await token.approve(VAULT_ADDR, ethers.MaxUint256);
-      await appTx.wait();
-    }
+    // pSunDAI vault uses onlyVault burn(from, amount) — no token approval needed
     showStatus("Settling debt…", "wait");
-    const tx = await vault.settleDebt(parsed);
+    const tx = await vault.settleDebt(ethers.parseUnits(amt, 18));
     await tx.wait();
     showStatus("Debt settled.", "ok");
     await refreshSystem();

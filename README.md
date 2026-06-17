@@ -64,8 +64,8 @@ V6 silently absorbed uncovered liquidation losses. V7 makes the math explicit:
 - `systemEquity()` — surplusBuffer minus badDebtAccumulated. Positive = solvent.
 - `reconcile()` — nets the two. Called automatically on every fee accrual. Public.
 
-### Inverted Dutch Auction
-Bonus starts at **5%** immediately when a vault is marked undercollateralized, and decays to **2%** over 3 hours. First mover wins the highest bonus. This eliminates the bad-debt window created by bots waiting for the maximum bonus.
+### Growing Dutch Auction (2%→5%)
+The liquidation bonus **grows** from 2% to 5% over 3 hours after a vault is marked undercollateralized. Liquidators can take the position at any time for 2–5% bonus depending on elapsed time. The `markUndercollateralized(addr)` function starts the auction clock without liquidating — keepers call this to begin the 3-hour countdown, then liquidate later at higher bonus.
 
 ### Debt Ceiling
 Immutable limit on total pSunDAI supply. Set at deploy time. Mint reverts if ceiling would be exceeded. Limits protocol-level risk.
@@ -166,7 +166,7 @@ When a vault's CR falls below 110%, it becomes liquidatable.
 3. Click Liquidate, enter pSunDAI to repay (minimum 20% of vault debt)
 4. Confirm — vault burns your pSunDAI, sends you proportional PLS + bonus
 
-**Bonus:** Starts at **5%** immediately when vault becomes undercollateralized. Decays to **2%** over 3 hours. First mover wins.
+**Bonus:** Starts at **2%** when the auction clock begins, grows to **5%** at the 3-hour mark. Liquidators can take any time for 2–5% — higher reward for waiting longer. Call `markUndercollateralized(addr)` to start the clock without liquidating.
 
 **V7 dual-price effect:** During confirmed spot liquidation (spot warning active 30+ min), liquidation eligibility uses real-time spot price. Vaults safe at TWAP may be liquidatable at spot during a real crash.
 
@@ -216,6 +216,7 @@ Public functions callable by any wallet. No economic cost beyond gas.
 |----------|-------------|
 | `reconcile()` | Net surplus buffer against bad debt |
 | `oracle.poke()` | Advance oracle TWAP state machine (30 min cooldown) |
+| `markUndercollateralized(addr)` | Start the 3-hour liquidation bonus clock without liquidating — use to begin the growing auction |
 | `clearBadDebt(addr)` | Seize zombie vault collateral. Caller keeps PLS free. |
 | `settleDebt(amount)` | Burn your own pSunDAI to cancel accumulated bad debt |
 
@@ -231,11 +232,11 @@ I4  — Oracle resilience: Stale oracle blocks minting, never blocks deposit/rep
 I5  — Immutability:      No admin, no pause, no upgrade after setVault()
 I6  — Liveness:          7-day oracle failure enables emergency exit paths
 I7  — Surplus accounting: Stability fees accumulate as surplus — never lost
-I8  — Trust-minimized burn: Vault burns only tokens it holds in its own balance
+I8  — Privileged burn: Vault burns from msg.sender directly via onlyVault token.burn(); no approve needed
 I9  — Dual-track:        Flash crashes never trigger spot liquidation; real crashes do
 I10 — Bad debt visible:  All bad debt tracked on-chain, never silently absorbed
 I11 — Debt ceiling:      Total supply bounded by immutable DEBT_CEILING
-I12 — Bonus inverted:    Liquidation bonus starts at max (5%), decays to min (2%)
+I12 — Bonus growing:     Liquidation bonus starts at min (2%), grows to max (5%) over 3 hours
 ```
 
 ---
@@ -265,7 +266,7 @@ Confirm pool addresses on PulseX before deployment.
 **Vault parameters:**
 - Min collateral ratio: **150%** · Liquidation threshold: **110%**
 - Stability fee: **0.5% APY** · Min action: 0.0001 PLS
-- Max bonus: **5%** (decays to 2% over 3h) · Min liquidation: 20% of vault debt
+- Max bonus: **5%** (grows from 2% over 3h) · Min liquidation: 20% of vault debt
 - Withdrawal cooldown: **5 minutes** · Emergency unlock: **30 days** with zero debt
 - Oracle staleness limit: **5 minutes** · Oracle dead override: **7 days**
 
@@ -322,7 +323,7 @@ Update `VAULT_ADDR`, `TOKEN_ADDR`, `ORACLE_ADDR` in both HTML files after deploy
 
 **No upgradeability.** No proxies, no beacons.
 
-**Trust-minimized token.** Vault calls `approve` flow then burns from its own balance. The vault cannot drain wallets.
+**Direct privileged burn.** The pSunDAI token exposes `burn(address from, uint256 amount)` gated by `onlyVault`. When a user calls `repay()`, or a liquidator calls `liquidate()`, the vault burns directly from `msg.sender`'s balance via this privileged call. No ERC20 `approve()` is required before repaying or liquidating — the vault's `onlyVault` burn is the only authorization. The vault can only burn from addresses that explicitly triggered the vault call.
 
 **Oracle manipulation resistance.** 5-pool TWAP median is extremely expensive to manipulate on-chain. Confirmation periods reject flash manipulation. Spot warning requires 30 continuous minutes to activate — not achievable by a single block attack.
 

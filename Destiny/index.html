@@ -231,6 +231,158 @@ body {
   text-align: left;
 }
 
+/* ── Lore Section ── */
+.lore-section {
+  margin-bottom: 1.5rem;
+}
+.lore-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px 4px 0 0;
+  padding: 0.9rem 1.6rem;
+}
+.lore-header-title {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.lore-header-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.lore-header-tag {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.7;
+}
+.lore-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  overflow: hidden;
+}
+.lore-card {
+  background: var(--bg2);
+  padding: 1.6rem 1.4rem;
+  position: relative;
+  overflow: hidden;
+}
+.lore-card::after {
+  content: attr(data-n);
+  position: absolute;
+  bottom: -0.6rem;
+  right: 0.4rem;
+  font-family: var(--mono);
+  font-size: 5rem;
+  font-weight: 900;
+  color: rgba(232,184,75,0.035);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  pointer-events: none;
+}
+.lore-tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  background: var(--gold-dim);
+  border: 1px solid var(--gold-border);
+  padding: 0.18rem 0.5rem;
+  border-radius: 2px;
+  margin-bottom: 0.9rem;
+}
+.lore-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.6rem;
+  line-height: 1.2;
+}
+.lore-body {
+  font-size: 0.76rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* ── Manifesto ── */
+.manifesto {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2rem 2.4rem;
+  margin-bottom: 2.5rem;
+  background: var(--bg2);
+  position: relative;
+  overflow: hidden;
+}
+.manifesto::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--gold-border) 30%, rgba(155,111,232,0.3) 70%, transparent 100%);
+}
+.manifesto-eyebrow {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.7;
+  margin-bottom: 1rem;
+}
+.manifesto-text {
+  font-size: 0.88rem;
+  line-height: 1.85;
+  color: var(--text);
+  max-width: 820px;
+}
+.manifesto-text strong { color: #fff; }
+.manifesto-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.4rem;
+}
+.manifesto-pill {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.8rem;
+  border-radius: 100px;
+  border: 1px solid var(--border-lit);
+  color: var(--muted);
+}
+.manifesto-pill.gold { border-color: var(--gold-border); color: var(--gold); background: var(--gold-dim); }
+.manifesto-pill.green { border-color: rgba(75,255,176,0.2); color: var(--green); background: var(--green-dim); }
+
+@media (max-width: 860px) {
+  .lore-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 520px) {
+  .lore-grid { grid-template-columns: 1fr; }
+  .manifesto { padding: 1.4rem; }
+}
+
 /* ── Stats Strip ── */
 .stats-strip {
   display: grid;
@@ -865,6 +1017,42 @@ body {
     </div>
   </section>
 
+  <!-- How It Works -->
+  <div class="lore-section">
+    <div class="lore-header">
+      <div class="lore-header-title">How It Works</div>
+      <div class="lore-header-line"></div>
+      <div class="lore-header-tag">Four phases · One direction · No undo</div>
+    </div>
+    <div class="lore-grid">
+
+      <div class="lore-card" data-n="I">
+        <div class="lore-tag">The Sacrifice</div>
+        <div class="lore-name">Stake Your Conviction</div>
+        <div class="lore-body">Deposit SunDAI, SunDAI/WPLS LP, or both. LP earns 1.5× weight — rewarding deeper believers. There is no yield here. No games. Just conviction staked on a single outcome: SunDAI reaching $1.00.</div>
+      </div>
+
+      <div class="lore-card" data-n="II">
+        <div class="lore-tag">The Trigger</div>
+        <div class="lore-name">$1.00 Locks the Vault</div>
+        <div class="lore-body">The moment the SunDial oracle confirms SunDAI at $1.00, the vault seals permanently. No new deposits. No withdrawals. Every stake is frozen in place. The event horizon has been crossed.</div>
+      </div>
+
+      <div class="lore-card" data-n="III">
+        <div class="lore-tag">The Void</div>
+        <div class="lore-name">Assets Converted to PLS</div>
+        <div class="lore-body">A five-step on-chain ritual converts all staked SunDAI and LP into PLS — PulseChain's native asset. The PLS is then deposited as overcollateral into the pSunDAI vault and pSunDAI is minted against it.</div>
+      </div>
+
+      <div class="lore-card" data-n="IV">
+        <div class="lore-tag">The Rebirth</div>
+        <div class="lore-name">pSunDAI Distributed</div>
+        <div class="lore-body">Every believer claims their proportional share of the freshly minted pSunDAI. Your SunDAI is gone — but you now hold a PLS-backed, fully autonomous stablecoin. Your conviction became the collateral.</div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Stats -->
   <div class="stats-strip">
     <div class="stat-cell">
@@ -1063,6 +1251,23 @@ body {
     <div class="mint-cta">
       <div class="mint-cta-text"><strong>Want to mint pSunDAI directly?</strong> Deposit PLS collateral in the live vault.</div>
       <a href="https://elitev5.github.io/SunDAIV2/index.html" target="_blank" class="btn-primary">Open pSunDAI Vault →</a>
+    </div>
+  </div>
+
+  <!-- Manifesto -->
+  <div class="manifesto">
+    <div class="manifesto-eyebrow">Why It Matters</div>
+    <div class="manifesto-text">
+      <strong>pSunDAI is PulseChain's native autonomous stablecoin</strong> — backed by PLS, not USDC. Not a bridge. Not a wrapped asset. Not a VC-funded stable with a kill switch. The Destiny Vault is its origin event: a community-funded ignition where early believers stake SunDAI, watch it convert at the $1 moment, and receive pSunDAI collateralized by their own conviction. Every pSunDAI minted through this vault is backed by real PLS deposited by real believers — <strong>not borrowed, not printed, not permitted.</strong> This is how decentralized money bootstraps itself. No roadmap. No team allocation. Just the protocol, the community, and the moment SunDAI hits a dollar.
+    </div>
+    <div class="manifesto-pills">
+      <span class="manifesto-pill gold">PLS-Collateralized</span>
+      <span class="manifesto-pill gold">Community Bootstrapped</span>
+      <span class="manifesto-pill green">No Admin Keys</span>
+      <span class="manifesto-pill green">Immutable Contract</span>
+      <span class="manifesto-pill">PulseChain Native</span>
+      <span class="manifesto-pill">No VC Backing</span>
+      <span class="manifesto-pill">Autonomous Protocol</span>
     </div>
   </div>
 

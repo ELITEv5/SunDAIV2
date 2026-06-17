@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SunDAI Destiny Vault — Black Hole Protocol</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☀️</text></svg>">
+<script src="ethers.umd.min.js"></script>
+<style>
+:root {
+  --gold:        #E8B84B;
+  --gold-bright: #FFD878;
+  --gold-dim:    rgba(232,184,75,0.10);
+  --gold-border: rgba(232,184,75,0.20);
+  --gold-glow:   rgba(232,184,75,0.35);
+  --plasma:      #FF7B35;
+  --purple:      #9B6FE8;
+  --green:       #4BFFB0;
+  --green-dim:   rgba(75,255,176,0.10);
+  --green-glow:  rgba(75,255,176,0.30);
+  --red:         #FF4444;
+  --bg:          #050507;
+  --bg2:         #0A0A0E;
+  --bg3:         #0F0F14;
+  --bg4:         #141419;
+  --border:      rgba(255,255,255,0.06);
+  --border-lit:  rgba(255,255,255,0.12);
+  --text:        #c8c8d0;
+  --muted:       #555566;
+  --mono:        'Courier New', Courier, monospace;
+  --sans:        system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Canvas ── */
+#bgCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+#particleCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* ── Wallet ── */
+#walletBtn {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 9999;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0.55rem 1.2rem;
+  background: rgba(232,184,75,0.06);
+  color: var(--gold);
+  border: 1px solid var(--gold-border);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.25s;
+  backdrop-filter: blur(8px);
+}
+#walletBtn:hover { background: rgba(232,184,75,0.14); border-color: var(--gold-glow); }
+#walletBtn.connected { color: var(--green); border-color: rgba(75,255,176,0.25); background: rgba(75,255,176,0.05); }
+#walletBtn.connected::before { content: '● '; font-size: 0.55em; vertical-align: middle; }
+
+/* ── Layout ── */
+.wrap {
+  position: relative;
+  z-index: 2;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ── Hero ── */
+.hero {
+  padding: 110px 0 72px;
+  text-align: center;
+}
+.hero-eyebrow {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2rem;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  border: 1px solid var(--gold-border);
+  background: rgba(232,184,75,0.05);
+  padding: 0.5rem 1.1rem;
+  border-radius: 100px;
+  margin-bottom: 2rem;
+  animation: badge-float 4s ease-in-out infinite;
+}
+.hero-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes badge-float {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; box-shadow: 0 0 0 0 var(--gold-glow); }
+  50%     { opacity: 0.6; box-shadow: 0 0 0 4px transparent; }
+}
+
+.hero-title {
+  font-size: clamp(3rem, 8vw, 6.5rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 80px rgba(232,184,75,0.15), 0 0 160px rgba(155,111,232,0.1);
+}
+.hero-title em {
+  font-style: normal;
+  color: var(--gold);
+  text-shadow: 0 0 40px rgba(232,184,75,0.5), 0 0 80px rgba(232,184,75,0.2);
+}
+.hero-sub {
+  font-size: 1.05rem;
+  color: var(--muted);
+  max-width: 480px;
+  margin: 1.4rem auto 2.4rem;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-bottom: 2.8rem;
+}
+
+.btn-primary {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.8rem;
+  background: var(--gold);
+  color: #080808;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+  transform: translateX(-100%);
+  transition: transform 0.5s;
+}
+.btn-primary:hover::after { transform: translateX(100%); }
+.btn-primary:hover { background: var(--gold-bright); }
+
+.btn-ghost {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.4rem;
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid var(--gold-border);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-ghost:hover { background: var(--gold-dim); border-color: var(--gold-glow); }
+
+.hero-warning {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 1.2rem 1.6rem;
+  background: rgba(232,184,75,0.03);
+  border: 1px solid rgba(232,184,75,0.12);
+  border-left: 3px solid var(--gold);
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  line-height: 1.8;
+  color: rgba(200,180,130,0.75);
+  text-align: left;
+}
+
+/* ── Stats Strip ── */
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.stat-cell {
+  background: var(--bg2);
+  padding: 1.6rem 1.2rem;
+  text-align: center;
+  position: relative;
+  transition: background 0.3s;
+}
+.stat-cell::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 1px;
+  background: var(--gold);
+  transition: width 0.4s;
+}
+.stat-cell:hover::before { width: 60%; }
+.stat-cell:hover { background: var(--bg3); }
+.stat-lbl {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+.stat-value {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--gold);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.stat-value.success { color: var(--green); text-shadow: 0 0 20px var(--green-glow); }
+.stat-value.warning { color: var(--plasma); text-shadow: 0 0 20px rgba(255,123,53,0.4); }
+.stat-sub {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  color: var(--muted);
+  margin-top: 0.35rem;
+}
+
+/* ── Progress ── */
+.progress-section {
+  margin-bottom: 1.5rem;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.4rem 1.8rem;
+}
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1rem;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.progress-head span:last-child { color: var(--gold); font-size: 0.8rem; }
+.progress-track {
+  height: 8px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 4px;
+  overflow: visible;
+  position: relative;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(155,111,232,0.8) 0%, var(--gold) 60%, var(--gold-bright) 100%);
+  border-radius: 4px;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  min-width: 4px;
+  position: relative;
+  animation: progress-shimmer 2.5s linear infinite;
+  background-size: 200% 100%;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  box-shadow: 0 0 12px 4px var(--gold-glow), 0 0 24px 8px rgba(232,184,75,0.15);
+  animation: tip-pulse 1.8s ease-in-out infinite;
+}
+@keyframes progress-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes tip-pulse {
+  0%,100% { box-shadow: 0 0 12px 4px var(--gold-glow), 0 0 24px 8px rgba(232,184,75,0.15); }
+  50%     { box-shadow: 0 0 20px 8px var(--gold-glow), 0 0 40px 16px rgba(232,184,75,0.25); }
+}
+
+/* ── Phase Timeline ── */
+.timeline {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.2rem 2rem;
+  gap: 0;
+  overflow: hidden;
+}
+.tl-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+.tl-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: calc(50% + 10px);
+  right: calc(-50% + 10px);
+  height: 1px;
+  background: var(--border-lit);
+  transition: background 0.5s;
+}
+.tl-item.complete:not(:last-child)::after { background: var(--green); opacity: 0.5; }
+.tl-node {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--muted);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  transition: all 0.4s;
+  position: relative;
+  z-index: 1;
+}
+.tl-item.active .tl-node {
+  border-color: var(--gold);
+  background: rgba(232,184,75,0.1);
+  box-shadow: 0 0 0 4px rgba(232,184,75,0.1), 0 0 16px var(--gold-glow);
+  animation: node-pulse 2s ease-in-out infinite;
+}
+.tl-item.complete .tl-node {
+  border-color: var(--green);
+  background: rgba(75,255,176,0.12);
+  box-shadow: 0 0 8px var(--green-glow);
+}
+.tl-item.complete .tl-node::after {
+  content: '✓';
+  font-size: 0.65rem;
+  color: var(--green);
+}
+@keyframes node-pulse {
+  0%,100% { box-shadow: 0 0 0 4px rgba(232,184,75,0.1), 0 0 16px var(--gold-glow); }
+  50%     { box-shadow: 0 0 0 8px rgba(232,184,75,0.05), 0 0 28px var(--gold-glow); }
+}
+.tl-label {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+  transition: color 0.4s;
+}
+.tl-item.active .tl-label { color: var(--gold); }
+.tl-item.complete .tl-label { color: var(--green); opacity: 0.7; }
+.tl-num {
+  font-family: var(--mono);
+  font-size: 0.5rem;
+  color: rgba(85,85,102,0.5);
+  margin-bottom: 0.15rem;
+  letter-spacing: 0.1em;
+}
+
+/* ── Main Grid ── */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1px;
+}
+.card {
+  background: var(--bg2);
+  padding: 1.8rem;
+}
+.card-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1.4rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.field { margin-bottom: 1rem; }
+.field-label {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+  display: flex;
+  justify-content: space-between;
+}
+.field-label span { color: var(--gold); }
+.field input {
+  width: 100%;
+  padding: 0.75rem 0.95rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.field input:focus {
+  border-color: rgba(232,184,75,0.35);
+  box-shadow: 0 0 0 3px rgba(232,184,75,0.06);
+}
+.field input::placeholder { color: var(--muted); }
+
+.btn-action {
+  width: 100%;
+  padding: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.6rem;
+}
+.btn-action:disabled { opacity: 0.28; cursor: not-allowed; }
+.btn-gold { background: var(--gold); color: #080808; }
+.btn-gold:hover:not(:disabled) { background: var(--gold-bright); }
+.btn-outline { background: transparent; color: var(--gold); border: 1px solid var(--gold-border); }
+.btn-outline:hover:not(:disabled) { background: var(--gold-dim); border-color: var(--gold-glow); }
+
+.pos-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+}
+.pos-row:last-child { border-bottom: none; }
+.pos-key { font-size: 0.62rem; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
+.pos-val { font-size: 0.95rem; color: #fff; }
+.pos-val.gold { color: var(--gold); }
+.pos-val.green { color: var(--green); }
+
+.card-note {
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  background: rgba(232,184,75,0.03);
+  border-left: 2px solid rgba(232,184,75,0.15);
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ── Ritual Section ── */
+.ritual-section {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  padding: 3rem 2rem 2.5rem;
+  margin-bottom: 2.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.ritual-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(155,111,232,0.4) 20%, var(--gold-border) 50%, rgba(155,111,232,0.4) 80%, transparent 100%);
+}
+
+.ritual-header {
+  text-align: center;
+  margin-bottom: 2.8rem;
+}
+.ritual-eyebrow {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.8rem;
+}
+.ritual-title {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 0 0 60px rgba(155,111,232,0.3), 0 0 120px rgba(232,184,75,0.1);
+}
+.ritual-title em {
+  font-style: normal;
+  color: var(--gold);
+}
+.ritual-sub {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 0.8rem;
+}
+
+.rite-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+}
+
+.rite-card {
+  position: relative;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.4rem 1.1rem 1.2rem;
+  text-align: center;
+  overflow: hidden;
+  transition: border-color 0.4s, box-shadow 0.4s, background 0.4s;
+}
+.rite-card::before {
+  content: attr(data-num);
+  position: absolute;
+  top: -0.3rem;
+  right: -0.2rem;
+  font-family: var(--mono);
+  font-size: 4.5rem;
+  font-weight: 900;
+  color: rgba(255,255,255,0.025);
+  line-height: 1;
+  pointer-events: none;
+  letter-spacing: -0.04em;
+}
+
+.rite-card.rite-active {
+  border-color: rgba(232,184,75,0.35);
+  background: rgba(232,184,75,0.03);
+  box-shadow: 0 0 0 1px rgba(232,184,75,0.1), 0 0 30px rgba(232,184,75,0.08), inset 0 0 20px rgba(232,184,75,0.03);
+  animation: card-pulse 2.8s ease-in-out infinite;
+}
+@keyframes card-pulse {
+  0%,100% { box-shadow: 0 0 0 1px rgba(232,184,75,0.1), 0 0 30px rgba(232,184,75,0.08), inset 0 0 20px rgba(232,184,75,0.03); }
+  50%     { box-shadow: 0 0 0 1px rgba(232,184,75,0.2), 0 0 50px rgba(232,184,75,0.15), inset 0 0 30px rgba(232,184,75,0.05); }
+}
+.rite-card.rite-complete {
+  border-color: rgba(75,255,176,0.25);
+  background: rgba(75,255,176,0.03);
+  box-shadow: 0 0 20px rgba(75,255,176,0.06);
+}
+.rite-card.rite-complete::after {
+  content: '✓';
+  position: absolute;
+  top: 0.6rem;
+  right: 0.7rem;
+  font-size: 0.7rem;
+  color: var(--green);
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.rite-step-num {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+  text-transform: uppercase;
+}
+.rite-card.rite-active .rite-step-num { color: rgba(232,184,75,0.6); }
+.rite-card.rite-complete .rite-step-num { color: rgba(75,255,176,0.5); }
+
+.rite-name {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(200,200,210,0.5);
+  margin-bottom: 0.6rem;
+  transition: color 0.3s;
+}
+.rite-card.rite-active .rite-name { color: var(--gold); }
+.rite-card.rite-complete .rite-name { color: var(--green); opacity: 0.8; }
+
+.rite-desc {
+  font-size: 0.68rem;
+  line-height: 1.55;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  min-height: 3em;
+}
+
+.rite-btn {
+  width: 100%;
+  padding: 0.65rem 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(155,111,232,0.08);
+  color: rgba(155,111,232,0.6);
+  border: 1px solid rgba(155,111,232,0.15);
+}
+.rite-btn:disabled { opacity: 0.22; cursor: not-allowed; }
+.rite-card.rite-active .rite-btn {
+  background: rgba(232,184,75,0.10);
+  color: var(--gold);
+  border-color: rgba(232,184,75,0.35);
+  box-shadow: 0 0 20px rgba(232,184,75,0.1);
+}
+.rite-card.rite-active .rite-btn:not(:disabled):hover {
+  background: rgba(232,184,75,0.18);
+  box-shadow: 0 0 30px rgba(232,184,75,0.18);
+}
+.rite-card.rite-complete .rite-btn {
+  background: rgba(75,255,176,0.07);
+  color: rgba(75,255,176,0.5);
+  border-color: rgba(75,255,176,0.15);
+}
+#claimBtn {
+  background: rgba(232,184,75,0.08);
+  color: var(--gold);
+  border-color: rgba(232,184,75,0.2);
+}
+.rite-card.rite-active #claimBtn:not(:disabled) {
+  background: var(--gold);
+  color: #080808;
+  border-color: transparent;
+  box-shadow: 0 0 30px var(--gold-glow);
+}
+
+/* ── Addresses ── */
+.addresses-section {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 3rem;
+}
+.addresses-head {
+  background: var(--bg3);
+  padding: 1rem 1.4rem;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.addresses-head::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 6px var(--gold-glow);
+}
+.ca-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+}
+.ca-cell {
+  background: var(--bg2);
+  padding: 0.9rem 1.4rem;
+  transition: background 0.2s;
+}
+.ca-cell:hover { background: var(--bg3); }
+.ca-name {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+.ca-addr {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--gold);
+  word-break: break-all;
+  opacity: 0.85;
+}
+.mint-cta {
+  padding: 1.2rem 1.6rem;
+  background: var(--bg3);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.mint-cta-text { font-size: 0.8rem; color: var(--muted); }
+.mint-cta-text strong { color: var(--text); }
+
+/* ── Footer ── */
+.site-footer {
+  padding: 1.5rem 0 3.5rem;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(85,85,102,0.5);
+  border-top: 1px solid var(--border);
+}
+
+/* ── Notifications ── */
+.notif {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  padding: 0.9rem 1.3rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  max-width: 340px;
+  backdrop-filter: blur(12px);
+  animation: notif-in 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.notif.success { border-color: rgba(75,255,176,0.3); color: var(--green); }
+.notif.error   { border-color: rgba(255,68,68,0.3);  color: var(--red); }
+.notif.info    { border-color: var(--gold-border);    color: var(--gold); }
+@keyframes notif-in {
+  from { transform: translateY(16px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .stats-strip { grid-template-columns: 1fr 1fr; }
+  .main-grid { grid-template-columns: 1fr; }
+  .rite-grid { grid-template-columns: 1fr 1fr; }
+  .rite-grid > :last-child { grid-column: 1 / -1; }
+  .ca-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .hero { padding: 80px 0 48px; }
+  .timeline { padding: 1rem; gap: 0; }
+  .tl-label { display: none; }
+  .rite-grid { grid-template-columns: 1fr; }
+  .rite-grid > :last-child { grid-column: auto; }
+  .mint-cta { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+<canvas id="particleCanvas"></canvas>
+<button id="walletBtn" onclick="handleWalletClick()">Connect Wallet</button>
+
+<div class="wrap">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-eyebrow">PulseChain &nbsp;·&nbsp; Black Hole Protocol &nbsp;·&nbsp; Immutable</div>
+    <div class="hero-badge">
+      <div class="hero-badge-dot"></div>
+      ⬛ SunDAI $1 Event
+    </div>
+    <h1 class="hero-title">DESTINY<br><em>VAULT</em></h1>
+    <p class="hero-sub">When SunDAI reaches $1.00, all staked conviction is consumed by the void — and reborn as pSunDAI collateral, distributed to believers.</p>
+    <div class="hero-actions">
+      <a href="https://libertyswap.finance/" target="_blank" class="btn-primary">Buy SunDAI →</a>
+      <button class="btn-ghost" onclick="navigator.clipboard.writeText('0x41C6b24019Bd67CC58fe7bb059D532C12356712B').then(()=>notify('CA copied','success'))">Copy SunDAI CA</button>
+    </div>
+    <div class="hero-warning">
+      ⬛ Once SunDAI touches $1.00 the vault locks permanently. All staked SunDAI and LP is destroyed, converted to PLS collateral, and used to mint pSunDAI. There is no undo. Only commit what you are willing to see destroyed and reborn.
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <div class="stats-strip">
+    <div class="stat-cell">
+      <div class="stat-lbl">SunDAI Price</div>
+      <div class="stat-value" id="currentPrice">—</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-lbl">Vault State</div>
+      <div class="stat-value" id="vaultState">—</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-lbl">SunDAI Staked</div>
+      <div class="stat-value" id="totalSundaiStaked">—</div>
+      <div class="stat-sub">Max supply 16,712,160</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-lbl">PLP Staked</div>
+      <div class="stat-value" id="totalPlpStakedTop">—</div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-section">
+    <div class="progress-head">
+      <span>Progress to Ignition</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Phase Timeline -->
+  <div class="timeline">
+    <div class="tl-item active" id="phaseStaking">
+      <div class="tl-num">01</div>
+      <div class="tl-node"></div>
+      <div class="tl-label">Staking</div>
+    </div>
+    <div class="tl-item" id="phaseIgnite">
+      <div class="tl-num">02</div>
+      <div class="tl-node"></div>
+      <div class="tl-label">Ignition</div>
+    </div>
+    <div class="tl-item" id="phaseConversion">
+      <div class="tl-num">03</div>
+      <div class="tl-node"></div>
+      <div class="tl-label">Conversion</div>
+    </div>
+    <div class="tl-item" id="phaseSupernova">
+      <div class="tl-num">04</div>
+      <div class="tl-node"></div>
+      <div class="tl-label">Supernova</div>
+    </div>
+    <div class="tl-item" id="phaseRebirth">
+      <div class="tl-num">05</div>
+      <div class="tl-node"></div>
+      <div class="tl-label">Rebirth</div>
+    </div>
+    <div class="tl-item" id="phaseClaim">
+      <div class="tl-num">06</div>
+      <div class="tl-node"></div>
+      <div class="tl-label">Claim</div>
+    </div>
+  </div>
+
+  <!-- Main panels -->
+  <div class="main-grid">
+    <div class="card" id="stakePanel">
+      <div class="card-label">Stake Your Conviction</div>
+      <div class="field">
+        <div class="field-label">SunDAI Amount <span id="sundaiBalance">Bal: —</span></div>
+        <input type="text" id="sundaiAmount" placeholder="0.0">
+      </div>
+      <div class="field">
+        <div class="field-label">PLP Amount (1.5× weight) <span id="plpBalance">Bal: —</span></div>
+        <input type="text" id="plpAmount" placeholder="0.0">
+      </div>
+      <button class="btn-action btn-gold" onclick="approveAndStake()">Stake Assets</button>
+      <button class="btn-action btn-outline" onclick="withdraw()">Withdraw</button>
+      <div class="card-note">LP tokens receive a 1.5× weight bonus. Your share % of the vault = your share % of all pSunDAI minted. Stakes lock permanently when SunDAI hits $1.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Your Position</div>
+      <div class="pos-row">
+        <span class="pos-key">Staked SunDAI</span>
+        <span class="pos-val gold" id="userSundai">0</span>
+      </div>
+      <div class="pos-row">
+        <span class="pos-key">Staked PLP</span>
+        <span class="pos-val gold" id="userPlp">0</span>
+      </div>
+      <div class="pos-row">
+        <span class="pos-key">Vault Share</span>
+        <span class="pos-val gold" id="userShareDetail">0%</span>
+      </div>
+      <div class="pos-row">
+        <span class="pos-key">Est. pSunDAI Reward</span>
+        <span class="pos-val green" id="estimatedPayout">0</span>
+      </div>
+      <div class="pos-row">
+        <span class="pos-key">Total PLP Staked</span>
+        <span class="pos-val" id="totalPlpStaked">—</span>
+      </div>
+      <!-- hidden span for userShare used by JS -->
+      <span id="userShare" style="display:none"></span>
+    </div>
+  </div>
+
+  <!-- Ritual Sequence -->
+  <div class="ritual-section">
+    <div class="ritual-header">
+      <div class="ritual-eyebrow">Execute in sequence after $1.00</div>
+      <div class="ritual-title">THE <em>RITUAL</em></div>
+      <div class="ritual-sub">Five steps. One direction. No undo.</div>
+    </div>
+
+    <div class="rite-grid">
+
+      <div class="rite-card" id="rite-ignite" data-num="01">
+        <div class="rite-step-num">Step 01</div>
+        <div class="rite-name">Ignite</div>
+        <div class="rite-desc">Locks the vault forever — no conversion yet. Cannot fail or brick.</div>
+        <button class="rite-btn" id="igniteBtn" onclick="ignite()" disabled>Ignite the Vault</button>
+      </div>
+
+      <div class="rite-card" id="rite-convert" data-num="02">
+        <div class="rite-step-num">Step 02</div>
+        <div class="rite-name">Convert</div>
+        <div class="rite-desc">Converts all staked SunDAI + LP → PLS. Retryable with slippage guard.</div>
+        <button class="rite-btn" id="executeConversionBtn" onclick="executeConversion()" disabled>Execute Conversion</button>
+      </div>
+
+      <div class="rite-card" id="rite-supernova" data-num="03">
+        <div class="rite-step-num">Step 03</div>
+        <div class="rite-name">Supernova</div>
+        <div class="rite-desc">Deposits PLS into the pSunDAI vault as collateral.</div>
+        <button class="rite-btn" id="supernovaBtn" onclick="supernova()" disabled>Trigger Supernova</button>
+      </div>
+
+      <div class="rite-card" id="rite-rebirth" data-num="04">
+        <div class="rite-step-num">Step 04</div>
+        <div class="rite-name">Rebirth</div>
+        <div class="rite-desc">Mints pSunDAI from the deposited PLS collateral.</div>
+        <button class="rite-btn" id="rebirthBtn" onclick="rebirth()" disabled>Trigger Rebirth</button>
+      </div>
+
+      <div class="rite-card" id="rite-claim" data-num="05">
+        <div class="rite-step-num">Step 05</div>
+        <div class="rite-name">Claim</div>
+        <div class="rite-desc">Receive your proportional share of the new Sun.</div>
+        <button class="rite-btn" id="claimBtn" onclick="claim()" disabled>Claim pSunDAI</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Contract Addresses -->
+  <div class="addresses-section">
+    <div class="addresses-head">Contract Addresses · PulseChain</div>
+    <div class="ca-grid">
+      <div class="ca-cell">
+        <div class="ca-name">SunDAI Token</div>
+        <div class="ca-addr">0x41C6b24019Bd67CC58fe7bb059D532C12356712B</div>
+      </div>
+      <div class="ca-cell">
+        <div class="ca-name">pSunDAI Token</div>
+        <div class="ca-addr">0x0b5701078675870AaA121Da2AECD906A1720B008</div>
+      </div>
+      <div class="ca-cell">
+        <div class="ca-name">Destiny Vault</div>
+        <div class="ca-addr">0x6262b68fc709239ABEb6a6eD5e32bdf0BE8DB543</div>
+      </div>
+      <div class="ca-cell">
+        <div class="ca-name">pSunDAI Vault V7</div>
+        <div class="ca-addr">0x14d98E5Ad664964C9F25fc598Ca3835c172E0BEC</div>
+      </div>
+      <div class="ca-cell">
+        <div class="ca-name">SunDAI/WPLS LP</div>
+        <div class="ca-addr">0xc01e2eDAe9E65950bb5783A6B01DC429Cf3F0eE2</div>
+      </div>
+      <div class="ca-cell">
+        <div class="ca-name">SunDial Oracle</div>
+        <div class="ca-addr">0x9a3442Ea79BE914d2bDACbc9550A30DD1f0747a4</div>
+      </div>
+      <div class="ca-cell">
+        <div class="ca-name">WPLS</div>
+        <div class="ca-addr">0xa1077a294dde1b09bb078844df40758a5d0f9a27</div>
+      </div>
+      <div class="ca-cell">
+        <div class="ca-name">V2 Router</div>
+        <div class="ca-addr">0x165C3410fC91EF562C50559f7d2289fEbed552d9</div>
+      </div>
+    </div>
+    <div class="mint-cta">
+      <div class="mint-cta-text"><strong>Want to mint pSunDAI directly?</strong> Deposit PLS collateral in the live vault.</div>
+      <a href="https://elitev5.github.io/SunDAI/vault/index5_7.html" target="_blank" class="btn-primary">Open pSunDAI Vault →</a>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    Built without governance &nbsp;·&nbsp; No admin keys &nbsp;·&nbsp; Immutable protocol &nbsp;·&nbsp; Elite Team6
+  </footer>
+
+</div><!-- /wrap -->
+
+<script>
+// ── WebGL Black Hole Background ──
+const bgCanvas = document.getElementById('bgCanvas');
+const gl = bgCanvas.getContext('webgl', { antialias: true });
+
+function resizeBg() {
+  bgCanvas.width = window.innerWidth;
+  bgCanvas.height = window.innerHeight;
+  gl.viewport(0, 0, bgCanvas.width, bgCanvas.height);
+}
+resizeBg();
+window.addEventListener('resize', resizeBg);
+
+const vsSource = `attribute vec2 position; void main(){gl_Position=vec4(position,0.0,1.0);}`;
+const fsSource = `
+precision highp float;
+uniform vec2 u_res;
+uniform float u_time;
+
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){
+  vec2 i=floor(p); vec2 f=fract(p);
+  f=f*f*(3.0-2.0*f);
+  float a=hash(i); float b=hash(i+vec2(1,0)); float c=hash(i+vec2(0,1)); float d=hash(i+vec2(1,1));
+  return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);
+}
+float fbm(vec2 p){
+  float v=0.0,a=0.5;
+  for(int i=0;i<5;i++){v+=a*noise(p);p*=2.1;a*=0.5;}
+  return v;
+}
+
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_res;
+  vec2 p=(uv-vec2(0.5,0.58))*vec2(u_res.x/u_res.y,1.0);
+  float t=u_time*0.012;
+
+  float r=length(p);
+  float theta=atan(p.y,p.x);
+
+  // Event horizon — absolute void
+  float horizon=smoothstep(0.13,0.035,r);
+
+  // Photon sphere ring just outside horizon
+  float photon=exp(-pow((r-0.155)/0.035,2.0))*0.8;
+
+  // Accretion disk — compressed vertically, rotating
+  vec2 dp=vec2(p.x,p.y*3.2);
+  float dr=length(dp);
+  float da=atan(dp.y,dp.x)+t*1.8+dr*4.0;
+  float dturb=fbm(vec2(cos(da),sin(da))*2.5+t*0.4)*0.6+0.4;
+  float disk=exp(-pow((dr-0.26)/0.14,2.0))*dturb;
+  disk*=smoothstep(0.07,0.18,dr);
+
+  // Outer glow ring
+  float outerGlow=exp(-pow((r-0.38)/0.18,2.0))*0.25;
+
+  // Relativistic jet (vertical)
+  float jet=exp(-pow(p.x/(0.018+r*0.05),2.0))*exp(-abs(p.y)*3.5)*smoothstep(0.14,0.3,abs(p.y));
+  jet*=sin(t*4.0+r*30.0)*0.3+0.7;
+
+  // Background nebula
+  float n1=fbm(p*1.3+vec2(t*0.4,-t*0.25));
+  float n2=fbm(p*2.6-vec2(t*0.2,t*0.3));
+  float nebula=n1*0.65+n2*0.35;
+
+  // Stars
+  float sv=hash(floor(p*280.0));
+  float star=step(0.9975,sv)*(sin(t*sv*20.0+sv*40.0)*0.35+0.65)*smoothstep(0.35,0.7,r);
+
+  // Colors
+  vec3 voidCol=vec3(0.0);
+  vec3 nebulaCol=mix(vec3(0.07,0.01,0.20),vec3(0.02,0.04,0.22),n1*0.5+n2*0.3);
+  vec3 diskHot=vec3(1.0,0.82,0.35);
+  vec3 diskWarm=vec3(0.75,0.25,0.05);
+  vec3 diskCol=mix(diskHot,diskWarm,smoothstep(0.1,0.42,dr)*(1.0-dturb*0.4));
+  vec3 photonCol=vec3(0.7,0.5,1.0);
+  vec3 jetCol=vec3(0.55,0.35,1.0);
+  vec3 outerCol=mix(vec3(0.3,0.1,0.6),vec3(0.6,0.35,0.08),0.4);
+
+  vec3 color=mix(vec3(0.008,0.008,0.018),nebulaCol,smoothstep(0.05,0.7,nebula));
+  color=mix(color,outerCol,outerGlow*0.6);
+  color=mix(color,diskCol,clamp(disk*1.1,0.0,1.0));
+  color+=photonCol*photon*0.5;
+  color+=jetCol*jet*0.45;
+  color+=star*0.9;
+  color*=smoothstep(1.15,0.15,r*1.4);
+  color=mix(color,voidCol,horizon);
+
+  gl_FragColor=vec4(color,1.0);
+}`;
+
+function makeShader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, makeShader(gl.VERTEX_SHADER, vsSource));
+gl.attachShader(prog, makeShader(gl.FRAGMENT_SHADER, fsSource));
+gl.linkProgram(prog);
+gl.useProgram(prog);
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl.STATIC_DRAW);
+const posLoc = gl.getAttribLocation(prog, 'position');
+gl.enableVertexAttribArray(posLoc);
+gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+const uRes  = gl.getUniformLocation(prog, 'u_res');
+const uTime = gl.getUniformLocation(prog, 'u_time');
+(function frame(t) {
+  gl.uniform2f(uRes, bgCanvas.width, bgCanvas.height);
+  gl.uniform1f(uTime, t * 0.001);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+  requestAnimationFrame(frame);
+})(0);
+
+// ── 2D Particle Overlay ──
+const pc = document.getElementById('particleCanvas');
+const ctx2d = pc.getContext('2d');
+function resizePc() { pc.width = window.innerWidth; pc.height = window.innerHeight; }
+resizePc();
+window.addEventListener('resize', resizePc);
+
+const PARTICLES = Array.from({length: 80}, () => ({
+  x: Math.random(), y: Math.random(),
+  r: Math.random() * 1.2 + 0.2,
+  speed: Math.random() * 0.00012 + 0.00003,
+  angle: Math.random() * Math.PI * 2,
+  orbit: Math.random() * 0.32 + 0.12,
+  drift: (Math.random() - 0.5) * 0.0002,
+  alpha: Math.random() * 0.5 + 0.1,
+  twinkle: Math.random() * Math.PI * 2,
+  tspeed: Math.random() * 0.04 + 0.01
+}));
+
+let pTime = 0;
+(function pFrame() {
+  pTime += 0.016;
+  ctx2d.clearRect(0, 0, pc.width, pc.height);
+  const cx = pc.width * 0.5;
+  const cy = pc.height * 0.58;
+  PARTICLES.forEach(p => {
+    p.angle += p.speed;
+    p.twinkle += p.tspeed;
+    const ox = pc.width * 0.5;
+    const oy = pc.height * 0.6;
+    const orbitX = p.orbit * pc.width * 0.28;
+    const orbitY = p.orbit * pc.height * 0.18;
+    const px = cx + Math.cos(p.angle) * orbitX;
+    const py = cy + Math.sin(p.angle) * orbitY;
+    const alpha = p.alpha * (0.6 + Math.sin(p.twinkle) * 0.4);
+    ctx2d.beginPath();
+    ctx2d.arc(px, py, p.r, 0, Math.PI * 2);
+    ctx2d.fillStyle = `rgba(232,184,75,${alpha * 0.7})`;
+    ctx2d.fill();
+  });
+  requestAnimationFrame(pFrame);
+})();
+
+// ── App ──
+function waitForEthers() {
+  return new Promise((resolve, reject) => {
+    if (window.ethers && window.ethers.BrowserProvider) return resolve();
+    let n = 0;
+    const iv = setInterval(() => {
+      if (window.ethers && window.ethers.BrowserProvider) { clearInterval(iv); resolve(); }
+      else if (++n > 60) { clearInterval(iv); reject(new Error('ethers.js failed to load')); }
+    }, 100);
+  });
+}
+
+waitForEthers().then(() => {
+  const ethers = window.ethers;
+
+  const DESTINY_VAULT  = '0x6262b68fc709239ABEb6a6eD5e32bdf0BE8DB543';
+  const SUNDAI_TOKEN   = '0x41C6b24019Bd67CC58fe7bb059D532C12356712B';
+  const PLP_TOKEN      = '0xc01e2eDAe9E65950bb5783A6B01DC429Cf3F0eE2';
+  const ORACLE         = '0x9a3442Ea79BE914d2bDACbc9550A30DD1f0747a4';
+
+  const PULSECHAIN_RPC = 'https://rpc.pulsechain.com';
+  let provider, signer, vaultContract, sundaiContract, plpContract, oracleContract;
+  let roProvider, roVaultContract, roSundaiContract, roPlpContract, roOracleContract;
+  let userAddress, updateInterval;
+
+  const _VAULT_ABI = [{"type":"constructor","inputs":[{"name":"_sundai","type":"address","internalType":"address"},{"name":"_psundai","type":"address","internalType":"address"},{"name":"_wpls","type":"address","internalType":"address"},{"name":"_vault","type":"address","internalType":"address"},{"name":"_router","type":"address","internalType":"address"},{"name":"_pairV1","type":"address","internalType":"address"},{"name":"_oracle","type":"address","internalType":"address"}],"stateMutability":"nonpayable"},{"name":"OwnableInvalidOwner","type":"error","inputs":[{"name":"owner","type":"address","internalType":"address"}]},{"name":"OwnableUnauthorizedAccount","type":"error","inputs":[{"name":"account","type":"address","internalType":"address"}]},{"name":"SafeERC20FailedOperation","type":"error","inputs":[{"name":"token","type":"address","internalType":"address"}]},{"name":"Claimed","type":"event","anonymous":false,"inputs":[{"name":"user","type":"address","indexed":true,"internalType":"address"},{"name":"amount","type":"uint256","indexed":false,"internalType":"uint256"}]},{"name":"EmergencyClaim","type":"event","anonymous":false,"inputs":[{"name":"user","type":"address","indexed":true,"internalType":"address"},{"name":"amountSundai","type":"uint256","indexed":false,"internalType":"uint256"},{"name":"amountPlp","type":"uint256","indexed":false,"internalType":"uint256"},{"name":"amountPls","type":"uint256","indexed":false,"internalType":"uint256"}]},{"name":"EmergencyExitEnabled","type":"event","anonymous":false,"inputs":[{"name":"totalPlsAvailable","type":"uint256","indexed":false,"internalType":"uint256"}]},{"name":"Ignited","type":"event","anonymous":false,"inputs":[]},{"name":"ConversionComplete","type":"event","anonymous":false,"inputs":[{"name":"plsRecovered","type":"uint256","indexed":false,"internalType":"uint256"}]},{"name":"OwnershipTransferred","type":"event","anonymous":false,"inputs":[{"name":"previousOwner","type":"address","indexed":true,"internalType":"address"},{"name":"newOwner","type":"address","indexed":true,"internalType":"address"}]},{"name":"Rebirth","type":"event","anonymous":false,"inputs":[{"name":"minted","type":"uint256","indexed":false,"internalType":"uint256"}]},{"name":"Staked","type":"event","anonymous":false,"inputs":[{"name":"user","type":"address","indexed":true,"internalType":"address"},{"name":"sundaiAmt","type":"uint256","indexed":false,"internalType":"uint256"},{"name":"plpAmt","type":"uint256","indexed":false,"internalType":"uint256"},{"name":"weight","type":"uint256","indexed":false,"internalType":"uint256"}]},{"name":"Supernova","type":"event","anonymous":false,"inputs":[{"name":"plsDeposited","type":"uint256","indexed":false,"internalType":"uint256"}]},{"name":"ThresholdLocked","type":"event","anonymous":false,"inputs":[]},{"name":"ThresholdUpdated","type":"event","anonymous":false,"inputs":[{"name":"newThreshold","type":"uint256","indexed":false,"internalType":"uint256"}]},{"name":"Withdrawn","type":"event","anonymous":false,"inputs":[{"name":"user","type":"address","indexed":true,"internalType":"address"},{"name":"sundaiAmt","type":"uint256","indexed":false,"internalType":"uint256"},{"name":"plpAmt","type":"uint256","indexed":false,"internalType":"uint256"}]},{"name":"LP_MULTIPLIER_BPS","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"SAFETY_BPS","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"claim","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},{"name":"claimEmergency","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},{"name":"conversionComplete","type":"function","inputs":[],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"name":"emergencyExitTriggered","type":"function","inputs":[],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"name":"enableEmergencyExit","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},{"name":"executeConversion","type":"function","inputs":[{"name":"minPlsOut","type":"uint256","internalType":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},{"name":"simulateConversion","type":"function","inputs":[],"outputs":[{"name":"expectedPls","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"ignite","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},{"name":"ignited","type":"function","inputs":[],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"name":"isLocked","type":"function","inputs":[],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"name":"lockThreshold","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},{"name":"oracle","type":"function","inputs":[],"outputs":[{"name":"","type":"address","internalType":"contract ISunDialOracle"}],"stateMutability":"view"},{"name":"owner","type":"function","inputs":[],"outputs":[{"name":"","type":"address","internalType":"address"}],"stateMutability":"view"},{"name":"pairV1","type":"function","inputs":[],"outputs":[{"name":"","type":"address","internalType":"contract IUniswapV2Pair"}],"stateMutability":"view"},{"name":"psundaiToken","type":"function","inputs":[],"outputs":[{"name":"","type":"address","internalType":"contract IPSunDAI"}],"stateMutability":"view"},{"name":"rebirth","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},{"name":"rebirthTriggered","type":"function","inputs":[],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"name":"renounceOwnership","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},{"name":"router","type":"function","inputs":[],"outputs":[{"name":"","type":"address","internalType":"contract IUniswapV2Router02"}],"stateMutability":"view"},{"name":"setThreshold","type":"function","inputs":[{"name":"newThreshold","type":"uint256","internalType":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},{"name":"snapshotPlsBal","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"stake","type":"function","inputs":[{"name":"sundaiAmt","type":"uint256","internalType":"uint256"},{"name":"plpAmt","type":"uint256","internalType":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},{"name":"stakes","type":"function","inputs":[{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"sundaiAmt","type":"uint256","internalType":"uint256"},{"name":"plpAmt","type":"uint256","internalType":"uint256"},{"name":"weight","type":"uint256","internalType":"uint256"},{"name":"claimed","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"name":"sundai","type":"function","inputs":[],"outputs":[{"name":"","type":"address","internalType":"contract IERC20"}],"stateMutability":"view"},{"name":"supernova","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},{"name":"supernovaTriggered","type":"function","inputs":[],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"name":"threshold","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"thresholdLocked","type":"function","inputs":[],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"view"},{"name":"totalPayout","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"totalWeight","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"transferOwnership","type":"function","inputs":[{"name":"newOwner","type":"address","internalType":"address"}],"outputs":[],"stateMutability":"nonpayable"},{"name":"vault","type":"function","inputs":[],"outputs":[{"name":"","type":"address","internalType":"contract IPSunDAIVault"}],"stateMutability":"view"},{"name":"withdraw","type":"function","inputs":[{"name":"sundaiAmt","type":"uint256","internalType":"uint256"},{"name":"plpAmt","type":"uint256","internalType":"uint256"}],"outputs":[],"stateMutability":"nonpayable"},{"name":"wpls","type":"function","inputs":[],"outputs":[{"name":"","type":"address","internalType":"contract IERC20"}],"stateMutability":"view"},{"type":"receive","stateMutability":"payable"}];
+  const _TOKEN_ABI = [{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_spender","type":"address"},{"name":"_value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"_to","type":"address"},{"name":"_value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"_owner","type":"address"},{"name":"_spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"payable":true,"stateMutability":"payable","type":"fallback"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"}];
+  const _ORACLE_ABI = [{"inputs":[{"internalType":"address","name":"_pair","type":"address"},{"internalType":"address","name":"_sundai","type":"address"},{"internalType":"address","name":"_wpls","type":"address"},{"internalType":"address","name":"_wplsUsdOracle","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},{"inputs":[],"name":"PRECISION","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getPrice","outputs":[{"internalType":"uint256","name":"price","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"isAtTarget","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"multiplierRemaining","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"progressToTarget","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"sundai","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"sundaiPair","outputs":[{"internalType":"contract IUniswapV2Pair","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"wplsUsdOracle","outputs":[{"internalType":"contract IWPLSUSDOracleView","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"wpls","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}];
+
+  function loadABIs() { return [_VAULT_ABI, _TOKEN_ABI, _ORACLE_ABI]; }
+
+  // ── Notifications ──
+  function notify(msg, type = 'info') {
+    const el = document.createElement('div');
+    el.className = `notif ${type}`;
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 5000);
+  }
+  window.notify = notify;
+
+  // ── Wallet ──
+  async function connectWallet() {
+    try {
+      if (!window.ethereum) { notify('No Web3 wallet detected', 'error'); return; }
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
+      userAddress = await signer.getAddress();
+
+      const net = await provider.getNetwork();
+      if (Number(net.chainId) !== 369) {
+        try {
+          await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x171' }] });
+          provider = new ethers.BrowserProvider(window.ethereum);
+          signer = await provider.getSigner();
+          userAddress = await signer.getAddress();
+        } catch { notify('Switch to PulseChain (chain 369)', 'error'); return; }
+      }
+
+      const [VAULT_ABI, TOKEN_ABI, ORACLE_ABI] = loadABIs();
+      vaultContract   = new ethers.Contract(DESTINY_VAULT, VAULT_ABI, signer);
+      sundaiContract  = new ethers.Contract(SUNDAI_TOKEN, TOKEN_ABI, signer);
+      plpContract     = new ethers.Contract(PLP_TOKEN, TOKEN_ABI, signer);
+      oracleContract  = new ethers.Contract(ORACLE, ORACLE_ABI, provider);
+
+      const short = userAddress.slice(0,6) + '…' + userAddress.slice(-4);
+      const btn = document.getElementById('walletBtn');
+      btn.textContent = short;
+      btn.classList.add('connected');
+      notify('Connected: ' + short, 'success');
+
+      clearInterval(updateInterval);
+      await updateAll();
+      updateInterval = setInterval(updateAll, 12000);
+    } catch (e) {
+      console.error(e);
+      notify('Connection failed: ' + e.message, 'error');
+    }
+  }
+
+  function disconnectWallet() {
+    if (updateInterval) clearInterval(updateInterval);
+    provider = signer = userAddress = vaultContract = sundaiContract = plpContract = oracleContract = null;
+    const btn = document.getElementById('walletBtn');
+    btn.textContent = 'Connect Wallet';
+    btn.classList.remove('connected');
+    resetUI();
+    notify('Disconnected', 'info');
+  }
+
+  function resetUI() {
+    ['currentPrice','vaultState','totalSundaiStaked','userShare','userSundai','userPlp',
+     'userShareDetail','estimatedPayout','totalPlpStaked','totalPlpStakedTop'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+    document.getElementById('sundaiBalance').textContent = 'Bal: —';
+    document.getElementById('plpBalance').textContent = 'Bal: —';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressPct').textContent = '0%';
+  }
+
+  function handleWalletClick() {
+    if (userAddress) { if (confirm('Disconnect wallet?')) disconnectWallet(); }
+    else connectWallet();
+  }
+  window.handleWalletClick = handleWalletClick;
+
+  if (window.ethereum) {
+    window.ethereum.on('accountsChanged', a => a.length ? connectWallet() : disconnectWallet());
+    window.ethereum.on('chainChanged', () => window.location.reload());
+  }
+
+  // ── Data ──
+  async function updateAll() {
+    await Promise.all([updatePrice(), updateVaultStatus(), updateUserPosition(), updateBalances()]);
+    await updatePhases();
+    await updateButtons();
+  }
+
+  async function updatePrice() {
+    const oc = oracleContract || roOracleContract;
+    if (!oc) return;
+    try {
+      const price = await oc.getPrice();
+      const pNum = parseFloat(ethers.formatUnits(price, 18));
+      document.getElementById('currentPrice').textContent = '$' + pNum.toFixed(6);
+      const pct = Math.min(pNum * 100, 100);
+      document.getElementById('progressFill').style.width = Math.max(pct, 0.3) + '%';
+      document.getElementById('progressPct').textContent = pct.toFixed(2) + '%';
+    } catch(e) { console.error('price', e); }
+  }
+
+  async function updateVaultStatus() {
+    const vc = vaultContract || roVaultContract;
+    const sc = sundaiContract || roSundaiContract;
+    const pc = plpContract    || roPlpContract;
+    if (!vc || !sc || !pc) return;
+    try {
+      const [ignited, conversionComplete, supernovaTriggered, rebirthTriggered, isLocked] = await Promise.all([
+        vc.ignited(),
+        vc.conversionComplete(),
+        vc.supernovaTriggered(),
+        vc.rebirthTriggered(),
+        vc.isLocked()
+      ]);
+      const el = document.getElementById('vaultState');
+      el.className = 'stat-value';
+      if (rebirthTriggered)        { el.textContent = 'REBIRTH'; el.classList.add('success'); }
+      else if (supernovaTriggered) { el.textContent = 'SUPERNOVA'; el.classList.add('warning'); }
+      else if (conversionComplete) { el.textContent = 'CONVERTED'; el.classList.add('warning'); }
+      else if (ignited)            { el.textContent = 'IGNITED'; el.classList.add('warning'); }
+      else if (isLocked)           { el.textContent = 'LOCKED'; el.classList.add('warning'); }
+      else                         { el.textContent = 'OPEN'; }
+
+      if (isLocked) document.getElementById('stakePanel').style.opacity = '0.45';
+      else document.getElementById('stakePanel').style.opacity = '1';
+
+      const [sundaiBal, plpBal] = await Promise.all([
+        sc.balanceOf(DESTINY_VAULT),
+        pc.balanceOf(DESTINY_VAULT)
+      ]);
+      document.getElementById('totalSundaiStaked').textContent =
+        parseFloat(ethers.formatUnits(sundaiBal, 18)).toLocaleString(undefined, {maximumFractionDigits: 0});
+      const plpFmt = parseFloat(ethers.formatUnits(plpBal, 18)).toLocaleString(undefined, {maximumFractionDigits: 2});
+      document.getElementById('totalPlpStaked').textContent = plpFmt;
+      document.getElementById('totalPlpStakedTop').textContent = plpFmt;
+    } catch(e) { console.error('vault status', e); }
+  }
+
+  async function updateUserPosition() {
+    try {
+      if (!userAddress || !vaultContract) return;
+      const stake = await vaultContract.stakes(userAddress);
+      const totalWeight = await vaultContract.totalWeight();
+      const totalPayout = await vaultContract.totalPayout();
+
+      document.getElementById('userSundai').textContent =
+        parseFloat(ethers.formatUnits(stake.sundaiAmt, 18)).toLocaleString(undefined, {maximumFractionDigits: 2});
+      document.getElementById('userPlp').textContent =
+        parseFloat(ethers.formatUnits(stake.plpAmt, 18)).toLocaleString(undefined, {maximumFractionDigits: 4});
+
+      const w = stake.weight;
+      const tw = totalWeight;
+      let sharePct = 0;
+      if (tw > 0n && w > 0n) sharePct = Number((w * 10000n) / tw) / 100;
+      const shareStr = sharePct < 0.01 && sharePct > 0 ? '<0.01%' : sharePct.toFixed(2) + '%';
+      document.getElementById('userShare').textContent = shareStr;
+      document.getElementById('userShareDetail').textContent = shareStr;
+
+      if (tw > 0n && totalPayout > 0n && w > 0n) {
+        const share = w * totalPayout / tw;
+        document.getElementById('estimatedPayout').textContent =
+          parseFloat(ethers.formatUnits(share, 18)).toFixed(4);
+      } else {
+        document.getElementById('estimatedPayout').textContent = '0';
+      }
+    } catch(e) { console.error('user pos', e); }
+  }
+
+  async function updateBalances() {
+    try {
+      if (!userAddress) return;
+      const [sb, pb] = await Promise.all([
+        sundaiContract.balanceOf(userAddress),
+        plpContract.balanceOf(userAddress)
+      ]);
+      document.getElementById('sundaiBalance').textContent =
+        'Bal: ' + parseFloat(ethers.formatUnits(sb, 18)).toLocaleString(undefined, {maximumFractionDigits: 2});
+      document.getElementById('plpBalance').textContent =
+        'Bal: ' + parseFloat(ethers.formatUnits(pb, 18)).toLocaleString(undefined, {maximumFractionDigits: 4});
+    } catch(e) { console.error('balances', e); }
+  }
+
+  async function updatePhases() {
+    const vc = vaultContract || roVaultContract;
+    if (!vc) return;
+    try {
+      const [ignited, cc, sn, rb] = await Promise.all([
+        vc.ignited(),
+        vc.conversionComplete(),
+        vc.supernovaTriggered(),
+        vc.rebirthTriggered()
+      ]);
+      const set = (id, state) => {
+        const el = document.getElementById(id);
+        el.className = 'tl-item' + (state === 'active' ? ' active' : state === 'complete' ? ' complete' : '');
+      };
+      if (!ignited) {
+        set('phaseStaking','active'); set('phaseIgnite',''); set('phaseConversion',''); set('phaseSupernova',''); set('phaseRebirth',''); set('phaseClaim','');
+      } else if (!cc) {
+        set('phaseStaking','complete'); set('phaseIgnite','active'); set('phaseConversion',''); set('phaseSupernova',''); set('phaseRebirth',''); set('phaseClaim','');
+      } else if (!sn) {
+        set('phaseStaking','complete'); set('phaseIgnite','complete'); set('phaseConversion','active'); set('phaseSupernova',''); set('phaseRebirth',''); set('phaseClaim','');
+      } else if (!rb) {
+        set('phaseStaking','complete'); set('phaseIgnite','complete'); set('phaseConversion','complete'); set('phaseSupernova','active'); set('phaseRebirth',''); set('phaseClaim','');
+      } else {
+        set('phaseStaking','complete'); set('phaseIgnite','complete'); set('phaseConversion','complete'); set('phaseSupernova','complete'); set('phaseRebirth','complete'); set('phaseClaim','active');
+      }
+    } catch(e) { console.error('phases', e); }
+  }
+
+  async function updateButtons() {
+    if (!userAddress || !vaultContract) return;
+    try {
+      const [ignited, cc, sn, rb, isLocked] = await Promise.all([
+        vaultContract.ignited(), vaultContract.conversionComplete(),
+        vaultContract.supernovaTriggered(), vaultContract.rebirthTriggered(),
+        vaultContract.isLocked()
+      ]);
+      const stake = await vaultContract.stakes(userAddress);
+      document.getElementById('igniteBtn').disabled              = ignited || !isLocked;
+      document.getElementById('executeConversionBtn').disabled   = !ignited || cc;
+      document.getElementById('supernovaBtn').disabled           = !cc || sn;
+      document.getElementById('rebirthBtn').disabled             = !sn || rb;
+      document.getElementById('claimBtn').disabled               = !rb || stake.claimed;
+
+      // Update rite card visual states
+      const cards = {
+        'rite-ignite':   { complete: ignited,      active: !ignited && isLocked },
+        'rite-convert':  { complete: cc,            active: ignited && !cc },
+        'rite-supernova':{ complete: sn,            active: cc && !sn },
+        'rite-rebirth':  { complete: rb,            active: sn && !rb },
+        'rite-claim':    { complete: stake.claimed, active: rb && !stake.claimed }
+      };
+      Object.entries(cards).forEach(([id, s]) => {
+        const el = document.getElementById(id);
+        el.classList.remove('rite-active', 'rite-complete');
+        if (s.complete) el.classList.add('rite-complete');
+        else if (s.active) el.classList.add('rite-active');
+      });
+    } catch(e) { console.error('buttons', e); }
+  }
+
+  // ── Actions ──
+  async function approveAndStake() {
+    try {
+      const sa = document.getElementById('sundaiAmount').value.trim();
+      const pa = document.getElementById('plpAmount').value.trim();
+      if ((!sa || sa === '0') && (!pa || pa === '0')) { notify('Enter an amount', 'error'); return; }
+
+      if (sa && parseFloat(sa) > 0) {
+        const amt = ethers.parseUnits(sa, 18);
+        const allowance = await sundaiContract.allowance(userAddress, DESTINY_VAULT);
+        if (allowance < amt) {
+          notify('Approving SunDAI…', 'info');
+          await (await sundaiContract.approve(DESTINY_VAULT, ethers.MaxUint256)).wait();
+          notify('SunDAI approved', 'success');
+        }
+      }
+      if (pa && parseFloat(pa) > 0) {
+        const amt = ethers.parseUnits(pa, 18);
+        const allowance = await plpContract.allowance(userAddress, DESTINY_VAULT);
+        if (allowance < amt) {
+          notify('Approving PLP…', 'info');
+          await (await plpContract.approve(DESTINY_VAULT, ethers.MaxUint256)).wait();
+          notify('PLP approved', 'success');
+        }
+      }
+
+      notify('Staking…', 'info');
+      const tx = await vaultContract.stake(
+        sa && parseFloat(sa) > 0 ? ethers.parseUnits(sa, 18) : 0n,
+        pa && parseFloat(pa) > 0 ? ethers.parseUnits(pa, 18) : 0n
+      );
+      await tx.wait();
+      notify('Staked successfully', 'success');
+      document.getElementById('sundaiAmount').value = '';
+      document.getElementById('plpAmount').value = '';
+      await updateAll();
+    } catch(e) { console.error(e); notify('Stake failed: ' + (e.reason || e.message), 'error'); }
+  }
+
+  async function withdraw() {
+    try {
+      const sa = document.getElementById('sundaiAmount').value.trim();
+      const pa = document.getElementById('plpAmount').value.trim();
+      if ((!sa || sa === '0') && (!pa || pa === '0')) { notify('Enter an amount', 'error'); return; }
+      notify('Withdrawing…', 'info');
+      const tx = await vaultContract.withdraw(
+        sa && parseFloat(sa) > 0 ? ethers.parseUnits(sa, 18) : 0n,
+        pa && parseFloat(pa) > 0 ? ethers.parseUnits(pa, 18) : 0n
+      );
+      await tx.wait();
+      notify('Withdrawn successfully', 'success');
+      document.getElementById('sundaiAmount').value = '';
+      document.getElementById('plpAmount').value = '';
+      await updateAll();
+    } catch(e) { console.error(e); notify('Withdraw failed: ' + (e.reason || e.message), 'error'); }
+  }
+
+  async function ignite() {
+    if (!confirm('IGNITION IS IRREVERSIBLE\n\nThis locks the vault permanently. No conversion happens yet — assets are NOT moved. Proceed?')) return;
+    try {
+      notify('Initiating ignition…', 'info');
+      await (await vaultContract.ignite()).wait();
+      notify('Vault ignited — proceed to Execute Conversion', 'success');
+      await updateAll();
+    } catch(e) { console.error(e); notify('Ignition failed: ' + (e.reason || e.message), 'error'); }
+  }
+
+  async function executeConversion() {
+    try {
+      notify('Simulating conversion…', 'info');
+      const expectedPls = await vaultContract.simulateConversion();
+      const minPlsOut = expectedPls * 97n / 100n;
+      const plsFmt = parseFloat(ethers.formatUnits(expectedPls, 18)).toFixed(2);
+      if (!confirm(`Execute Conversion\n\nEstimated PLS output: ${plsFmt}\nMin accepted (3% buffer): ${parseFloat(ethers.formatUnits(minPlsOut, 18)).toFixed(2)} PLS\n\nThis converts all staked SunDAI + LP to PLS. Retryable if it fails. Proceed?`)) return;
+      notify('Executing conversion…', 'info');
+      await (await vaultContract.executeConversion(minPlsOut)).wait();
+      notify('Conversion complete — proceed to Supernova', 'success');
+      await updateAll();
+    } catch(e) { console.error(e); notify('Conversion failed: ' + (e.reason || e.message), 'error'); }
+  }
+
+  async function supernova() {
+    try {
+      notify('Initiating supernova…', 'info');
+      await (await vaultContract.supernova()).wait();
+      notify('Supernova complete — collateral deposited', 'success');
+      await updateAll();
+    } catch(e) { console.error(e); notify('Supernova failed: ' + (e.reason || e.message), 'error'); }
+  }
+
+  async function rebirth() {
+    try {
+      notify('Initiating rebirth…', 'info');
+      await (await vaultContract.rebirth()).wait();
+      notify('Rebirth complete — pSunDAI minted', 'success');
+      await updateAll();
+    } catch(e) { console.error(e); notify('Rebirth failed: ' + (e.reason || e.message), 'error'); }
+  }
+
+  async function claim() {
+    try {
+      notify('Claiming pSunDAI…', 'info');
+      await (await vaultContract.claim()).wait();
+      notify('Claimed — your share of the new Sun is yours', 'success');
+      await updateAll();
+    } catch(e) { console.error(e); notify('Claim failed: ' + (e.reason || e.message), 'error'); }
+  }
+
+  window.approveAndStake = approveAndStake;
+  window.withdraw = withdraw;
+  window.ignite = ignite;
+  window.executeConversion = executeConversion;
+  window.supernova = supernova;
+  window.rebirth = rebirth;
+  window.claim = claim;
+
+  window.addEventListener('load', async () => {
+    try {
+      const [VAULT_ABI, TOKEN_ABI, ORACLE_ABI] = loadABIs();
+      roProvider       = new ethers.JsonRpcProvider(PULSECHAIN_RPC);
+      roVaultContract  = new ethers.Contract(DESTINY_VAULT, VAULT_ABI,  roProvider);
+      roSundaiContract = new ethers.Contract(SUNDAI_TOKEN,  TOKEN_ABI,  roProvider);
+      roPlpContract    = new ethers.Contract(PLP_TOKEN,     TOKEN_ABI,  roProvider);
+      roOracleContract = new ethers.Contract(ORACLE,        ORACLE_ABI, roProvider);
+      await Promise.all([updatePrice(), updateVaultStatus(), updatePhases()]);
+      if (!updateInterval) updateInterval = setInterval(() => Promise.all([updatePrice(), updateVaultStatus(), updatePhases()]), 15000);
+    } catch(e) { console.warn('read-only init:', e.message); }
+  });
+
+}).catch(e => {
+  console.error(e);
+  alert('ethers.js failed to load: ' + e.message);
+});
+</script>
+</body>
+</html>

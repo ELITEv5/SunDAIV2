@@ -135,9 +135,10 @@
   .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
   .tab-btn {
     padding: 8px 20px; border-radius: 8px; border: 1px solid var(--border);
-    background: transparent; color: var(--muted); cursor: pointer; font-size: .85rem;
-    transition: all .2s;
+    background: var(--surface); color: var(--text); cursor: pointer; font-size: .85rem;
+    font-weight: 500; transition: all .2s;
   }
+  .tab-btn:hover:not(.active) { border-color: var(--amber); color: var(--gold); }
   .tab-btn.active {
     background: linear-gradient(135deg, rgba(245,200,66,.2), rgba(200,106,16,.2));
     border-color: var(--amber); color: var(--gold);

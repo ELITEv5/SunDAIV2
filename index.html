@@ -60,10 +60,10 @@
   nav .spacer { flex: 1; }
   #walletBtn {
     padding: 7px 18px; border-radius: 8px; border: 1px solid var(--amber);
-    background: transparent; color: var(--gold); cursor: pointer; font-size: .85rem;
-    transition: background .2s;
+    background: rgba(245,200,66,.1); color: var(--gold); cursor: pointer; font-size: .85rem;
+    font-weight: 600; transition: background .2s;
   }
-  #walletBtn:hover { background: rgba(245,200,66,.1); }
+  #walletBtn:hover { background: rgba(245,200,66,.22); }
   nav a.liq-link {
     padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border);
     color: var(--muted); text-decoration: none; font-size: .85rem;
@@ -229,11 +229,18 @@
   }
   .btn-primary:hover { filter: brightness(1.15); }
   .btn-secondary {
-    background: transparent; border: 1px solid var(--amber);
+    background: rgba(245,200,66,.07); border: 1px solid var(--amber);
     color: var(--gold); margin-top: 8px;
   }
-  .btn-secondary:hover { background: rgba(245,200,66,.1); }
+  .btn-secondary:hover { background: rgba(245,200,66,.18); }
+  .btn-secondary:active { background: rgba(245,200,66,.25); }
+  .btn-exit {
+    background: rgba(200,106,16,.1); border: 1px solid var(--ember);
+    color: #e8a020; margin-top: 8px;
+  }
+  .btn-exit:hover { background: rgba(200,106,16,.2); }
   .btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+  .action-sep { text-align:center; font-size:.7rem; color:var(--muted); margin: 10px 0 2px; }
 
   /* ── AUTO TAB ────────────────────────────────────────────────────── */
   .auto-info {
@@ -353,9 +360,11 @@
   .modal-box p { color: var(--muted); font-size: .83rem; line-height: 1.6; margin-bottom: 8px; }
   .modal-box ul { color: var(--muted); font-size: .83rem; line-height: 1.7; padding-left: 18px; }
   .modal-close {
-    float: right; background: none; border: 1px solid var(--border);
+    float: right; background: rgba(255,255,255,.04); border: 1px solid var(--border);
     color: var(--muted); cursor: pointer; border-radius: 6px; padding: 4px 12px;
+    transition: all .2s;
   }
+  .modal-close:hover { border-color: var(--amber); color: var(--gold); background: rgba(245,200,66,.08); }
   .help-btn {
     background: rgba(245,200,66,.1); border: 1px solid var(--amber);
     color: var(--gold); font-weight: 600;
@@ -562,8 +571,9 @@
           <button onclick="setRepayToSafe()" style="margin-left:8px;padding:3px 10px;border-radius:5px;border:1px solid var(--amber);background:rgba(245,200,66,.1);color:var(--gold);cursor:pointer;font-size:.8rem;font-weight:600">Fill</button>
         </div>
         <button class="btn btn-primary" onclick="doRepay()">Repay</button>
-        <button class="btn btn-secondary" onclick="doRepayToSafe()">Repay to 150% CR — Restore Safety</button>
-        <button class="btn btn-secondary" onclick="doRepayAndWithdraw()">Repay All &amp; Withdraw PLS</button>
+        <div class="action-sep">— or use a quick action —</div>
+        <button class="btn btn-secondary" onclick="doRepayToSafe()">&#10003; Repay to Safety (150% CR)</button>
+        <button class="btn btn-exit" onclick="doRepayAndWithdraw()">&#8617; Repay All &amp; Exit — Withdraw PLS</button>
       </div>
 
       <!-- WITHDRAW TAB -->

@@ -297,6 +297,37 @@
   .tool-input-row input:focus { border-color: var(--amber); }
   .tool-input-row .tool-btn { width: auto; padding: 9px 16px; font-size: .82rem; }
 
+  /* ── VAULT HEALTH BANNER ─────────────────────────────────────────── */
+  #vaultHealthBanner { display:none; border-radius:10px; padding:14px 16px; margin-bottom:14px; }
+  #vaultHealthBanner.vhb-new    { display:block; background:rgba(245,200,66,.07); border:1px solid rgba(245,200,66,.25); }
+  #vaultHealthBanner.vhb-good   { display:block; background:rgba(76,175,80,.07); border:1px solid rgba(76,175,80,.2); }
+  #vaultHealthBanner.vhb-ok     { display:block; background:rgba(76,175,80,.04); border:1px solid rgba(76,175,80,.12); }
+  #vaultHealthBanner.vhb-warn   { display:block; background:rgba(255,152,0,.1); border:1px solid rgba(255,152,0,.4); }
+  #vaultHealthBanner.vhb-danger { display:block; background:rgba(244,67,54,.1); border:1px solid rgba(244,67,54,.45); }
+  .vhb-title { font-size:.92rem; font-weight:700; margin-bottom:4px; }
+  .vhb-new .vhb-title    { color:var(--gold); }
+  .vhb-good .vhb-title   { color:var(--safe); }
+  .vhb-ok .vhb-title     { color:var(--safe); }
+  .vhb-warn .vhb-title   { color:var(--warn); }
+  .vhb-danger .vhb-title { color:var(--danger); }
+  .vhb-text { font-size:.8rem; color:var(--muted); line-height:1.55; }
+  .vhb-text strong { color:var(--text); }
+  .vhb-action {
+    margin-top:10px; padding:8px 18px; border-radius:7px;
+    font-size:.84rem; font-weight:700; cursor:pointer; border:none;
+    display:inline-block; transition:filter .2s;
+  }
+  .vhb-action:hover { filter:brightness(1.15); }
+  .vhb-new .vhb-action    { background:linear-gradient(135deg,var(--amber),var(--ember)); color:#fff; }
+  .vhb-warn .vhb-action   { background:rgba(255,152,0,.18); border:1px solid var(--warn)!important; color:var(--warn); }
+  .vhb-danger .vhb-action { background:rgba(244,67,54,.18); border:1px solid var(--danger)!important; color:var(--danger); }
+
+  /* ── DETAILS (collapsible panels) ────────────────────────────────── */
+  details > summary { list-style:none; cursor:pointer; user-select:none; }
+  details > summary::-webkit-details-marker { display:none; }
+  details > summary .chevron { display:inline-block; transition:transform .2s; font-style:normal; margin-left:4px; }
+  details[open] > summary .chevron { transform:rotate(90deg); }
+
   /* ── STATUS MESSAGES ─────────────────────────────────────────────── */
   #statusMsg {
     margin-top: 12px; padding: 10px 14px; border-radius: 8px;
@@ -428,11 +459,11 @@
           <div class="s-val" id="sBalance">—</div>
         </div>
         <div class="stat-box">
-          <div class="s-label">Mintable</div>
+          <div class="s-label">Available to Borrow</div>
           <div class="s-val" id="sMintable">—</div>
         </div>
         <div class="stat-box">
-          <div class="s-label">Repay to Safe</div>
+          <div class="s-label">Repay to be Safe</div>
           <div class="s-val" id="sRepayToSafe">—</div>
         </div>
       </div>
@@ -446,17 +477,26 @@
           <div class="cr-bar-fill" id="crFill" style="width:0%;background:var(--safe)"></div>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);margin-top:4px">
-          <span>110% liq</span><span>150% safe</span><span>175% target</span>
+          <span style="color:var(--danger)">▼ 110% liquidation</span>
+          <span style="color:var(--warn)">150% minimum</span>
+          <span style="color:var(--safe)">175%+ target ▲</span>
         </div>
+      </div>
+
+      <!-- VAULT HEALTH BANNER -->
+      <div id="vaultHealthBanner">
+        <div class="vhb-title" id="vhbTitle"></div>
+        <div class="vhb-text" id="vhbText"></div>
+        <button class="vhb-action" id="vhbAction" style="display:none" onclick=""></button>
       </div>
 
       <!-- TABS -->
       <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('auto',this)">Auto</button>
-        <button class="tab-btn" onclick="switchTab('deposit',this)">Deposit</button>
-        <button class="tab-btn" onclick="switchTab('mint',this)">Mint</button>
-        <button class="tab-btn" onclick="switchTab('repay',this)">Repay</button>
-        <button class="tab-btn" onclick="switchTab('withdraw',this)">Withdraw</button>
+        <button class="tab-btn active" id="tab-btn-auto"     onclick="switchTab('auto',this)">Auto Borrow</button>
+        <button class="tab-btn"        id="tab-btn-deposit"  onclick="switchTab('deposit',this)">Deposit PLS</button>
+        <button class="tab-btn"        id="tab-btn-mint"     onclick="switchTab('mint',this)">Borrow More</button>
+        <button class="tab-btn"        id="tab-btn-repay"    onclick="switchTab('repay',this)">Repay</button>
+        <button class="tab-btn"        id="tab-btn-withdraw" onclick="switchTab('withdraw',this)">Withdraw</button>
       </div>
 
       <!-- AUTO TAB -->
@@ -591,35 +631,38 @@
       </div>
     </div>
 
-    <!-- PROTOCOL TOOLS -->
+    <!-- PROTOCOL TOOLS (collapsible — for keepers/developers) -->
     <div class="panel">
-      <div class="panel-title">Protocol Tools — Anyone Can Run These</div>
-
-      <div class="tool-item">
-        <div class="tool-desc">Update the oracle price. Keeps the TWAP fresh. Call this any time — safe, free to run.</div>
-        <button class="tool-btn" onclick="doPoke()">Poke Oracle</button>
-      </div>
-
-      <div class="tool-item">
-        <div class="tool-desc">Balance protocol accounting — nets stability fees collected against any bad debt. Harmless to run.</div>
-        <button class="tool-btn" onclick="doReconcile()">Reconcile Surplus</button>
-      </div>
-
-      <div class="tool-item">
-        <div class="tool-desc">A vault is "zombie" when its collateral is worth less than its debt. Enter the vault owner's address and claim all their PLS as a reward.</div>
-        <div class="tool-input-row">
-          <input type="text" id="badDebtAddr" placeholder="0x vault owner address">
-          <button class="tool-btn" onclick="doClearBadDebt()">Claim PLS</button>
+      <details>
+        <summary class="panel-title" style="margin-bottom:0">
+          Advanced Tools <i class="chevron">›</i>
+          <span style="font-size:.65rem;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;margin-left:4px">for keepers &amp; developers</span>
+        </summary>
+        <div style="margin-top:14px">
+          <div class="tool-item">
+            <div class="tool-desc">Update the oracle price. Keeps the TWAP current. Safe for anyone to call any time.</div>
+            <button class="tool-btn" onclick="doPoke()">Poke Oracle</button>
+          </div>
+          <div class="tool-item">
+            <div class="tool-desc">Balance protocol accounting — nets stability fees against bad debt. Harmless to run.</div>
+            <button class="tool-btn" onclick="doReconcile()">Reconcile Surplus</button>
+          </div>
+          <div class="tool-item">
+            <div class="tool-desc">A "zombie" vault has collateral worth less than its debt. Enter the owner's address to seize their PLS as a reward.</div>
+            <div class="tool-input-row">
+              <input type="text" id="badDebtAddr" placeholder="0x vault owner address">
+              <button class="tool-btn" onclick="doClearBadDebt()">Claim PLS</button>
+            </div>
+          </div>
+          <div class="tool-item">
+            <div class="tool-desc">Burn your own pSunDAI to cancel accumulated protocol bad debt.</div>
+            <div class="tool-input-row">
+              <input type="number" id="settleAmt" placeholder="pSunDAI amount">
+              <button class="tool-btn" onclick="doSettle()">Settle Debt</button>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div class="tool-item">
-        <div class="tool-desc">Burn your own pSunDAI to cancel protocol bad debt. Helps keep the system healthy.</div>
-        <div class="tool-input-row">
-          <input type="number" id="settleAmt" placeholder="pSunDAI amount">
-          <button class="tool-btn" onclick="doSettle()">Settle Debt</button>
-        </div>
-      </div>
+      </details>
     </div>
 
     <!-- VAULT HEALTH ZONES -->
@@ -691,44 +734,73 @@
     <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">✕ Close</button>
     <h2>How pSunDAI Works</h2>
 
-    <h3>1. What is pSunDAI?</h3>
-    <p>pSunDAI is a PLS-collateralized stable asset on PulseChain. Lock WPLS, mint pSunDAI (targeting $1 USD). No admin, no governance, fully autonomous once deployed.</p>
+    <h3>What is pSunDAI?</h3>
+    <p>pSunDAI is a <strong style="color:var(--gold)">lending protocol on PulseChain</strong>. You deposit PLS as collateral and borrow pSunDAI — a stable token worth ~$1 USD — against it. When you're done, repay the pSunDAI and get your PLS back.</p>
+    <p>There are no admins, no fees to a team, and no way to pause or change the rules. The protocol runs on its own forever.</p>
 
-    <h3>2. Deposit PLS → Mint pSunDAI</h3>
-    <p>Deposit native PLS directly (auto-wraps to WPLS). Minimum 150% collateral ratio to mint. Auto mode mints at 155% in one transaction.</p>
+    <h3>Getting started — 3 steps</h3>
+    <p><strong style="color:var(--gold)">Step 1 — Deposit PLS.</strong> Go to the "Deposit PLS" tab (or use Auto Borrow to skip to Step 3). Your PLS becomes collateral locked in the vault.</p>
+    <p><strong style="color:var(--gold)">Step 2 — Borrow pSunDAI.</strong> Use the "Borrow More" tab to mint pSunDAI. Each token is worth approximately $1. You must keep your Collateral Ratio above 150%.</p>
+    <p><strong style="color:var(--gold)">Step 3 — Repay when ready.</strong> Repay your pSunDAI at any time using the "Repay" tab. Then withdraw your PLS. No time limit, no deadlines.</p>
 
-    <h3>3. Collateral Ratio (CR)</h3>
-    <p>CR = (PLS collateral × PLS price) ÷ pSunDAI debt × 100%. Stay above 150% to mint, above 110% to avoid liquidation. Target 175%+ for safety.</p>
-
-    <h3>4. Oracle: PulseX 5-Pool TWAP + Spot</h3>
+    <h3>What is Collateral Ratio (CR)?</h3>
+    <p>CR = (value of your PLS) ÷ (pSunDAI you owe) × 100%.</p>
+    <p>Example: You deposit $300 worth of PLS and borrow 150 pSunDAI. Your CR = 300 ÷ 150 × 100% = <strong style="color:var(--safe)">200%</strong>. That's healthy.</p>
     <ul>
-      <li><strong>TWAP (Conservative):</strong> 5-pool PulseX median with asymmetric stepping — slow to fall (4h confirmation), fast to rise (30min). Used for minting and withdrawal safety checks.</li>
-      <li><strong>Spot Median:</strong> Real-time 5-pool price. Used for liquidation eligibility when a real crash is confirmed.</li>
-      <li><strong>Spot Warning Track:</strong> If spot stays 5%+ below TWAP for 30 continuous minutes, spot liquidation activates. Flash crashes clear in minutes; real crashes don't.</li>
+      <li><strong style="color:var(--safe)">175%+ </strong> — Safe zone. Good buffer against price swings.</li>
+      <li><strong style="color:var(--warn)">150–175%</strong> — Acceptable, but top up if PLS drops.</li>
+      <li><strong style="color:var(--warn)">110–150%</strong> — At risk. You cannot borrow more. Add PLS or repay debt.</li>
+      <li><strong style="color:var(--danger)">Below 110%</strong> — Liquidatable. Anyone can repay your debt and claim your PLS.</li>
     </ul>
 
-    <h3>5. Liquidations</h3>
-    <p>Vaults below 110% CR can be liquidated. Bonus <strong>grows from 2% to 5%</strong> over 3 hours after the auction clock starts. Call <code>markUndercollateralized(addr)</code> to start the clock, then liquidate later for higher bonus. See <a href="liquidations.html" style="color:var(--amber)">Vault Dashboard</a> to scan and liquidate.</p>
-
-    <h3>6. Repay &amp; Withdraw</h3>
-    <p>Repay pSunDAI to reduce debt. Withdraw PLS as native or WPLS. 5-minute cooldown after deposit. "Repay All &amp; Withdraw" closes position in one transaction.</p>
-
-    <h3>7. Spot Liquidation (Dual-Price)</h3>
-    <p>If the spot warning has been active for 30+ minutes, liquidations use real-time spot price instead of conservative TWAP. A flash crash lasts minutes — spot recovers before 30 min, no liquidations triggered. A real crash stays down — spot confirms after 30 min.</p>
-
-    <h3>8. Emergency Functions</h3>
+    <h3>How to stay safe</h3>
     <ul>
-      <li><strong>Emergency Unlock:</strong> Zero debt + last deposit older than 30 days → withdraw regardless of oracle.</li>
-      <li><strong>Emergency Repay / Withdraw:</strong> If oracle is dead for 7+ days, repay and withdraw without price checks.</li>
+      <li>Keep your CR <strong>above 175%</strong> at all times as a buffer. PLS is volatile.</li>
+      <li>Check your vault regularly, especially when PLS price is falling.</li>
+      <li>Use <strong>"Repay to 150% CR"</strong> button in the Repay tab if you get close to the danger zone.</li>
+      <li>If your CR turns <strong style="color:var(--danger)">red</strong>, act immediately — repay pSunDAI or deposit more PLS.</li>
+      <li>There are no warning emails. Only you are responsible for monitoring your vault.</li>
     </ul>
 
-    <h3>9. Protocol Tools (anyone can call)</h3>
-    <ul>
-      <li><strong>Reconcile:</strong> Net surplus buffer against bad debt on-chain.</li>
-      <li><strong>Poke:</strong> Advance oracle state machine (rate-limited to once per 30 min).</li>
-      <li><strong>Clear Bad Debt:</strong> Seize underwater vault — caller keeps all PLS free.</li>
-      <li><strong>Settle Debt:</strong> Burn your pSunDAI to cancel accumulated bad debt.</li>
-    </ul>
+    <h3>What is liquidation?</h3>
+    <p>If your CR falls below 110%, your vault becomes liquidatable. Anyone can repay your debt and claim your PLS plus a bonus (2–5%). You lose your PLS collateral but your pSunDAI debt is cancelled.</p>
+    <p>Liquidation is not a punishment — it keeps the protocol solvent. But it means you lose your PLS, so avoid it.</p>
+
+    <h3>Auto Borrow</h3>
+    <p>The fastest way to start: enter a PLS amount in the <strong>Auto Borrow</strong> tab and click the button. It deposits your PLS and borrows pSunDAI at 155% CR in a single transaction.</p>
+
+    <h3>Repay All &amp; Exit</h3>
+    <p>To fully close your position, go to the Repay tab and click <strong>"Repay All &amp; Withdraw PLS"</strong>. This repays all debt and returns your PLS in one transaction. Make sure you have enough pSunDAI in your wallet first.</p>
+
+    <details style="margin-top:16px">
+      <summary style="cursor:pointer;color:var(--amber);font-size:.85rem;font-weight:700;user-select:none">
+        Technical details (oracle, emergency functions, protocol tools) <i class="chevron">›</i>
+      </summary>
+      <div style="margin-top:12px">
+        <h3>Oracle: PulseX 5-Pool TWAP + Spot Warning</h3>
+        <ul>
+          <li><strong>TWAP (Conservative):</strong> Slow to fall (4h confirmation for &gt;1% moves down), fast to rise (30min). Used for all safety checks.</li>
+          <li><strong>Spot Warning:</strong> If the real-time PulseX price stays 5%+ below TWAP for 30 continuous minutes, liquidations switch to spot price. Flash crashes recover before 30 min — real crashes don't.</li>
+        </ul>
+
+        <h3>Emergency Functions</h3>
+        <ul>
+          <li><strong>Emergency Unlock:</strong> Zero debt + last deposit &gt;30 days → withdraw regardless of oracle state.</li>
+          <li><strong>Emergency Repay / Withdraw:</strong> If oracle has been dead for 7+ days, repay and withdraw without price checks.</li>
+        </ul>
+
+        <h3>Stability Fee</h3>
+        <p>0.5% APY accrues on your debt continuously. 1,000 pSunDAI debt grows by ~5 pSunDAI per year. This is why your "Debt" stat slowly increases over time.</p>
+
+        <h3>Protocol Tools</h3>
+        <ul>
+          <li><strong>Poke Oracle:</strong> Anyone can call this to advance the TWAP state machine. Rate-limited to once per 30 minutes.</li>
+          <li><strong>Reconcile:</strong> Net stability fees collected against any bad debt on-chain.</li>
+          <li><strong>Clear Bad Debt:</strong> Seize a zombie vault (collateral &lt; debt). Caller keeps all PLS free.</li>
+          <li><strong>Settle Debt:</strong> Burn your own pSunDAI to cancel accumulated protocol bad debt.</li>
+        </ul>
+      </div>
+    </details>
   </div>
 </div>
 
@@ -857,7 +929,48 @@ function switchTab(name, btn) {
   document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
   document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
   document.getElementById("tab-" + name).classList.add("active");
-  btn.classList.add("active");
+  (btn || document.getElementById("tab-btn-" + name))?.classList.add("active");
+}
+
+function updateHealthBanner(collateral, debt, ratio, repayNeeded) {
+  const banner = document.getElementById("vaultHealthBanner");
+  const title  = document.getElementById("vhbTitle");
+  const text   = document.getElementById("vhbText");
+  const action = document.getElementById("vhbAction");
+  const cr = Number(ratio);
+
+  if (collateral === ZERO && debt === ZERO) {
+    banner.className = "vhb-new";
+    title.textContent = "Welcome — your vault is empty";
+    text.innerHTML = "Deposit PLS as collateral and borrow pSunDAI (each worth ~$1). <strong>Keep your Collateral Ratio above 150% at all times.</strong> If it falls below 110%, anyone can liquidate your vault and claim your PLS.";
+    action.textContent = "Get started with Auto Borrow →";
+    action.onclick = () => switchTab("auto");
+    action.style.display = "inline-block";
+  } else if (cr < 110) {
+    banner.className = "vhb-danger";
+    title.textContent = "🚨 Vault is liquidatable — act immediately";
+    text.innerHTML = `Your CR is <strong>${fmtCR(ratio)}</strong>. Below 110% anyone can repay your debt and claim your PLS. <strong>Repay pSunDAI right now</strong> to protect your position.`;
+    action.textContent = "Repay to Safety →";
+    action.onclick = () => { switchTab("repay"); doRepayToSafe(); };
+    action.style.display = "inline-block";
+  } else if (cr < 150) {
+    banner.className = "vhb-warn";
+    title.textContent = "⚠ Vault is at risk — below safe zone";
+    text.innerHTML = `CR: <strong>${fmtCR(ratio)}</strong>. You cannot borrow more. If PLS price falls further you could hit liquidation at 110%. Repay <strong>${fmt18(repayNeeded)} pSunDAI</strong> to get back to 150%.`;
+    action.textContent = "Repay to 150% CR →";
+    action.onclick = () => switchTab("repay");
+    action.style.display = "inline-block";
+  } else if (cr < 175) {
+    banner.className = "vhb-ok";
+    title.textContent = "✓ Vault is safe — CR: " + fmtCR(ratio);
+    text.textContent = "You're in the safe zone, but 175%+ is recommended. A PLS price drop could push you toward the at-risk zone.";
+    action.style.display = "none";
+  } else {
+    banner.className = "vhb-good";
+    title.textContent = "✓ Vault is healthy — CR: " + fmtCR(ratio);
+    text.textContent = "Your vault has a solid safety buffer. You're well above the liquidation threshold.";
+    action.style.display = "none";
+  }
 }
 
 // ── WALLET ────────────────────────────────────────────────────────────────────
@@ -1058,6 +1171,8 @@ async function refreshVault() {
     fill.style.width = pct + "%";
     const n = Number(ratio);
     fill.style.background = n < 110 ? "var(--danger)" : n < 150 ? "var(--warn)" : "var(--safe)";
+
+    updateHealthBanner(collateral, debt, ratio, repayNeeded);
 
     document.getElementById("repayBalHint").textContent = fmt18(tokenBal) + " pSunDAI";
   } catch(e) {

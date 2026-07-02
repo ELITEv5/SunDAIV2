@@ -381,7 +381,8 @@ Both HTML files have contract ABIs inlined directly — no external fetch, no bu
 
 **Mirrors:**
 - GitHub Pages: https://elitev5.github.io/SunDAIV2/pSunDAIV8/index.html
-- IPFS: see `latest-cid.txt` once pinned (this file will be added when a CID exists)
+- IPFS: current CID tracked in `latest-cid.txt` at [github.com/elitev5/SunDAIV2](https://github.com/elitev5/SunDAIV2) (`pSunDAIV8/latest-cid.txt`). That file lives only in the GitHub source, not inside the pinned content itself — a file can't reference the hash of the folder it's part of, so this README doesn't hardcode a specific CID, and every re-pin (including one triggered by editing this file) produces a new one.
+  - **This line only resolves if you're reading it on GitHub.** If you're viewing this README from inside an IPFS-pinned copy, `latest-cid.txt` isn't sitting next to it for the same self-reference reason — use the GitHub link above to find the current CID instead. Once you have any CID, any public gateway works: `https://ipfs.io/ipfs/<cid>/index.html`, or a local IPFS node.
 
 ---
 

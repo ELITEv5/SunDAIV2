@@ -53,6 +53,18 @@
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
   .panel-title { font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--amber); margin-bottom: 14px; }
 
+  /* ── CONTRACT ADDRESSES ──────────────────────────────────────────── */
+  .ca-stack { display: flex; flex-direction: column; gap: 6px; }
+  .ca-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px; border-radius: 7px;
+    background: var(--surface); border: 1px solid var(--border);
+    text-decoration: none; transition: border-color .2s, background .2s;
+  }
+  .ca-row:hover { border-color: var(--amber); background: rgba(245,200,66,.06); }
+  .ca-lbl { font-size: .78rem; color: var(--muted); }
+  .ca-addr { font-size: .78rem; font-family: monospace; color: var(--gold); }
+
   /* ── TABS ────────────────────────────────────────────────────────── */
   .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
   .tab-btn { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: .83rem; transition: all .2s; }
@@ -93,6 +105,15 @@
   .action-input { display: flex; gap: 6px; flex: 1; min-width: 160px; }
   .action-input input { flex: 1; padding: 7px 10px; border-radius: 6px; background: var(--panel); border: 1px solid var(--border); color: var(--text); font-size: .82rem; outline: none; }
   .action-input input:focus { border-color: var(--amber); }
+  /* Below 520px, long action-button labels (e.g. "Liquidate Manually 8.00%")
+     don't fit alongside the input + separate Max button without overlapping
+     (buttons use white-space:nowrap and don't shrink) - stack everything in
+     the actions row into its own full-width line instead. */
+  @media(max-width:520px) {
+    .vc-actions { flex-direction: column; align-items: stretch; }
+    .action-input { min-width: 0; flex-direction: column; }
+    .action-input button, .vc-actions > button { width: 100%; white-space: normal; }
+  }
   .btn-liq { padding: 7px 14px; border-radius: 7px; border: 1px solid rgba(244,67,54,.4); background: rgba(244,67,54,.1); color: var(--danger); font-size: .8rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
   .btn-liq:hover { background: rgba(244,67,54,.2); }
   .btn-redeem { padding: 7px 14px; border-radius: 7px; border: 1px solid rgba(245,200,66,.3); background: rgba(245,200,66,.08); color: var(--gold); font-size: .8rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
@@ -229,6 +250,26 @@
     </div>
 
     <div id="statusMsg"></div>
+  </div>
+
+  <!-- CONTRACT ADDRESSES -->
+  <div class="panel">
+    <div class="panel-title">Official Contract Addresses · Base</div>
+    <div class="ca-stack">
+      <a class="ca-row" href="https://basescan.org/address/0x0594A2B4916dc2299e8e322973dC344C8c92BF4c" target="_blank" rel="noopener">
+        <span class="ca-lbl">bSunDAI Token</span>
+        <span class="ca-addr">0x0594…2BF4c ↗</span>
+      </a>
+      <a class="ca-row" href="https://basescan.org/address/0x974cb2F1f02c520B796d0F0ECc9b8F58d69E0913" target="_blank" rel="noopener">
+        <span class="ca-lbl">Vault</span>
+        <span class="ca-addr">0x974c…E0913 ↗</span>
+      </a>
+      <a class="ca-row" href="https://basescan.org/address/0xdDbfBF4F6FCf11E9E8Ea1b2E2054e8ffeBC2dF9e" target="_blank" rel="noopener">
+        <span class="ca-lbl">Oracle</span>
+        <span class="ca-addr">0xdDbf…dF9e ↗</span>
+      </a>
+    </div>
+    <div style="font-size:.7rem;color:var(--muted);margin-top:8px;line-height:1.5">Always verify these addresses match before connecting or approving — click through to BaseScan to confirm.</div>
   </div>
 </main>
 

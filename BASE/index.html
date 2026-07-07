@@ -254,6 +254,18 @@
   /* ── SIDE COLUMN ─────────────────────────────────────────────────── */
   .side-col { display: flex; flex-direction: column; gap: 16px; }
 
+  /* ── CONTRACT ADDRESSES ──────────────────────────────────────────── */
+  .ca-stack { display: flex; flex-direction: column; gap: 6px; }
+  .ca-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px; border-radius: 7px;
+    background: var(--surface); border: 1px solid var(--border);
+    text-decoration: none; transition: border-color .2s, background .2s;
+  }
+  .ca-row:hover { border-color: var(--amber); background: rgba(245,200,66,.06); }
+  .ca-lbl { font-size: .78rem; color: var(--muted); }
+  .ca-addr { font-size: .78rem; font-family: monospace; color: var(--gold); }
+
   /* ── SYSTEM STATE ────────────────────────────────────────────────── */
   .sys-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: .85rem; }
   .sys-row:last-child { border-bottom: none; }
@@ -506,7 +518,7 @@
         <div class="input-wrap">
           <button class="max-btn" onclick="setMaxMint()">MAX</button>
           <input type="number" id="mintAmt" placeholder="0.0" oninput="previewMint()" min="0" step="any">
-          <span class="input-unit" style="right:12px">bSunDAI</span>
+          <span class="input-unit" style="right:100px">bSunDAI</span>
         </div>
         <div class="hint">After mint CR: <span id="afterMintCR">—</span></div>
         <button class="btn btn-primary" onclick="doMint()">Mint bSunDAI</button>
@@ -519,7 +531,7 @@
         <div class="input-wrap">
           <button class="max-btn" onclick="setMaxRepay()">MAX</button>
           <input type="number" id="repayAmt" placeholder="0.0" min="0" step="any">
-          <span class="input-unit" style="right:12px">bSunDAI</span>
+          <span class="input-unit" style="right:100px">bSunDAI</span>
         </div>
         <div class="hint">bSunDAI balance: <span id="repayBalHint">—</span></div>
         <button class="btn btn-primary" onclick="doRepay()">Repay</button>
@@ -580,7 +592,7 @@
         <div class="input-wrap">
           <button class="max-btn" onclick="setMaxSPProvide()">MAX</button>
           <input type="number" id="spProvideAmt" placeholder="0.0" min="0" step="any">
-          <span class="input-unit" style="right:12px">bSunDAI</span>
+          <span class="input-unit" style="right:100px">bSunDAI</span>
         </div>
         <div class="hint">Wallet balance: <span id="spWalletBalHint">—</span> · Requires one-time approval</div>
         <button class="btn btn-primary" onclick="doProvideSP()">Approve &amp; Provide</button>
@@ -591,7 +603,7 @@
         <div class="input-wrap">
           <button class="max-btn" onclick="setMaxSPWithdraw()">MAX</button>
           <input type="number" id="spWithdrawAmt" placeholder="0.0" min="0" step="any">
-          <span class="input-unit" style="right:12px">bSunDAI</span>
+          <span class="input-unit" style="right:100px">bSunDAI</span>
         </div>
         <div class="hint">Your compounded deposit: <span id="spWithdrawHint">—</span> · Any pending gain is claimed automatically</div>
         <button class="btn btn-primary" onclick="doWithdrawSP()">Withdraw</button>
@@ -609,6 +621,26 @@
 
   <!-- SIDE COLUMN -->
   <div class="side-col">
+    <!-- CONTRACT ADDRESSES -->
+    <div class="panel">
+      <div class="panel-title">Official Contract Addresses · Base</div>
+      <div class="ca-stack">
+        <a class="ca-row" href="https://basescan.org/address/0x0594A2B4916dc2299e8e322973dC344C8c92BF4c" target="_blank" rel="noopener">
+          <span class="ca-lbl">bSunDAI Token</span>
+          <span class="ca-addr">0x0594…2BF4c ↗</span>
+        </a>
+        <a class="ca-row" href="https://basescan.org/address/0x974cb2F1f02c520B796d0F0ECc9b8F58d69E0913" target="_blank" rel="noopener">
+          <span class="ca-lbl">Vault</span>
+          <span class="ca-addr">0x974c…E0913 ↗</span>
+        </a>
+        <a class="ca-row" href="https://basescan.org/address/0xdDbfBF4F6FCf11E9E8Ea1b2E2054e8ffeBC2dF9e" target="_blank" rel="noopener">
+          <span class="ca-lbl">Oracle</span>
+          <span class="ca-addr">0xdDbf…dF9e ↗</span>
+        </a>
+      </div>
+      <div style="font-size:.7rem;color:var(--muted);margin-top:8px;line-height:1.5">Always verify these addresses match before connecting or approving — click through to BaseScan to confirm.</div>
+    </div>
+
     <!-- SYSTEM STATE -->
     <div class="panel">
       <div class="panel-title">System State</div>

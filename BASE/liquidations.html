@@ -1,959 +1,721 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>bSunDAI — Vault Dashboard</title>
-  <link rel="icon" href="sundailogo.png" type="image/png"/>
-  <meta name="theme-color" content="#FF8C00"/>
-  <script>
-    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && !navigator.userAgent.includes("MetaMaskMobile")) {
-      const url = location.origin + location.pathname + location.search + location.hash;
-      location.replace(/iPhone|iPad|iPod/i.test(navigator.userAgent)
-        ? "metamask://dapp/" + url.replace(/^https?:\/\//, '')
-        : "https://metamask.app.link/dapp/" + encodeURIComponent(url));
-    }
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@400;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <script src="ethers.umd.min.js"></script>
-  <style>
-    :root {
-      --gold:   #FFD700; --amber: #FF8C00; --ember: #FF5500; --base: #0052FF;
-      --cream:  #FFF5E4; --muted: rgba(255,245,228,0.55); --dim: rgba(255,245,228,0.30);
-      --bg:     #060004; --surface: rgba(255,140,0,0.06); --border: rgba(255,140,0,0.2);
-      --safe:   #00FFB2; --warn: #FFD000; --risk: #FF2D55;
-      --mono:   'IBM Plex Mono', monospace; --head: 'DM Serif Display', Georgia, serif;
-      --body:   'Outfit', system-ui, sans-serif; --r: 14px;
-    }
-    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-    body { background:var(--bg); color:var(--cream); font-family:var(--body); min-height:100vh; overflow-x:hidden; }
-    #bg-canvas { position:fixed; inset:0; z-index:0; pointer-events:none; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>bSunDAI V9 — Vault Dashboard</title>
+<script src="ethers.umd.min.js"></script>
+<style>
+  :root {
+    --gold:    #f5c842;
+    --amber:   #e8a020;
+    --ember:   #c96a10;
+    --bg:      #0d0b08;
+    --surface: #17140e;
+    --panel:   #1f1a12;
+    --border:  #2e2515;
+    --text:    #f0e8d0;
+    --muted:   #8a7a5a;
+    --safe:    #4caf50;
+    --warn:    #ff9800;
+    --danger:  #f44336;
+    --info:    #2196f3;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; overflow-x: hidden; }
+  canvas#bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 
-    /* NAV */
-    .nav { position:fixed; top:0; left:0; right:0; z-index:1000; height:58px; display:flex; align-items:center; justify-content:space-between; padding:0 24px; background:rgba(6,0,4,0.93); backdrop-filter:blur(24px); border-bottom:1px solid rgba(255,140,0,0.13); }
-    .nav-brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--cream); }
-    .nav-brand img { height:28px; width:28px; object-fit:contain; }
-    .nav-brand-text { font-family:var(--head); font-style:italic; font-size:1.22em; }
-    .nav-badge { background:linear-gradient(135deg,var(--base),#0040CC); color:#fff; padding:2px 9px; border-radius:6px; font-size:0.6em; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
-    .nav-links { display:flex; gap:4px; }
-    .nav-link { padding:5px 14px; border-radius:7px; font-size:0.82em; font-weight:600; text-decoration:none; color:var(--dim); transition:all 0.15s; border:1px solid transparent; letter-spacing:0.03em; text-transform:uppercase; }
-    .nav-link:hover { color:var(--cream); background:rgba(255,140,0,0.1); }
-    .nav-link.active { color:var(--gold); border-color:rgba(255,215,0,0.22); background:rgba(255,215,0,0.06); }
-    .wallet-btn { background:rgba(255,140,0,0.12); border:1px solid rgba(255,140,0,0.38); color:var(--cream); font-family:var(--body); font-weight:700; font-size:0.82em; padding:7px 16px; border-radius:8px; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
-    .wallet-btn.connected { border-color:var(--gold); color:var(--gold); background:rgba(255,215,0,0.07); }
-    @media (max-width:520px) { .nav { padding:0 14px; } .nav-brand-text { display:none; } .nav-badge { display:none; } .nav-link { font-size:0.78em; padding:5px 9px; } }
+  /* ── NAV ─────────────────────────────────────────────────────────── */
+  nav { position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 12px; padding: 10px 20px; background: rgba(13,11,8,.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+  .logo { height: 38px; }
+  .brand { font-size: 1.2rem; font-weight: 700; color: var(--gold); }
+  .badge { font-size: .7rem; font-weight: 700; letter-spacing: .08em; padding: 2px 8px; border-radius: 20px; background: linear-gradient(135deg, #1e62f5, #0a3ab5); color: #fff; }
+  nav .spacer { flex: 1; }
+  #walletBtn { padding: 7px 18px; border-radius: 8px; border: 1px solid var(--amber); background: transparent; color: var(--gold); cursor: pointer; font-size: .85rem; transition: background .2s; }
+  #walletBtn:hover { background: rgba(245,200,66,.1); }
+  nav a.back-link { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); text-decoration: none; font-size: .85rem; transition: color .2s, border-color .2s; }
+  nav a.back-link:hover { color: var(--gold); border-color: var(--amber); }
+  @media(max-width:520px) { nav { padding: 8px 12px; gap: 8px; } .brand { font-size: 1rem; } nav a.back-link { display: none; } }
 
-    /* ORACLE BAR */
-    .oracle-bar { position:fixed; top:58px; left:0; right:0; z-index:999; display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; padding:5px 20px; font-size:0.72em; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; backdrop-filter:blur(16px); background:rgba(0,50,20,0.9); border-bottom:1px solid rgba(0,255,160,0.18); color:var(--safe); transition:all 0.3s; }
-    .oracle-bar.stale { background:rgba(60,0,10,0.9); border-color:rgba(255,45,85,0.28); color:var(--risk); }
-    .oracle-bar.liq   { background:rgba(80,0,10,0.95); border-color:rgba(255,45,85,0.5); color:var(--risk); animation:warnPulse 1.4s ease infinite; }
-    .oracle-bar.warn  { background:rgba(70,40,0,0.92); border-color:rgba(255,165,0,0.35); color:var(--warn); }
-    .ob-dot { width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
-    .ob-sep { opacity:0.35; }
-    @keyframes warnPulse { 0%,100%{opacity:1} 50%{opacity:0.82} }
+  /* ── ORACLE BAR ──────────────────────────────────────────────────── */
+  #oracleBar { display: flex; align-items: center; gap: 10px; padding: 6px 20px; font-size: .78rem; color: var(--muted); border-bottom: 1px solid var(--border); background: rgba(13,11,8,.7); }
+  .ob-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .ob-dot.green { background: var(--safe); box-shadow: 0 0 6px var(--safe); }
+  .ob-dot.amber { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+  .ob-dot.red   { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
 
-    /* LAYOUT */
-    .page { position:relative; z-index:10; max-width:900px; margin:0 auto; padding:108px 18px 80px; }
+  /* ── LAYOUT ──────────────────────────────────────────────────────── */
+  main { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 24px 16px; }
 
-    /* HERO */
-    .page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
-    .page-title { font-family:var(--head); font-style:italic; font-size:clamp(1.8em,4vw,2.6em); background:linear-gradient(135deg,#FF8C00 0%,#FFD700 50%,#FF8C00 100%); background-size:200%; animation:shimmer 4s ease infinite; -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-    @keyframes shimmer { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
-    .page-sub { font-size:0.8em; color:var(--dim); letter-spacing:0.05em; text-transform:uppercase; }
+  /* ── PANEL ───────────────────────────────────────────────────────── */
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  .panel-title { font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--amber); margin-bottom: 14px; }
 
-    /* TOAST */
-    .toast-area { min-height:34px; text-align:center; margin:0 0 8px; }
-    .toast { display:inline-block; font-size:0.82em; font-weight:600; padding:7px 18px; border-radius:9px; animation:toastIn 0.2s ease; max-width:95vw; word-break:break-word; }
-    @keyframes toastIn { from{opacity:0;transform:translateY(-4px)} }
-    .toast.ok  { background:rgba(0,255,178,0.07); border:1px solid rgba(0,255,178,0.22); color:var(--safe); }
-    .toast.err { background:rgba(255,45,85,0.07); border:1px solid rgba(255,45,85,0.22); color:var(--risk); }
-    .toast.info{ background:rgba(255,215,0,0.06); border:1px solid rgba(255,215,0,0.2); color:var(--gold); }
+  /* ── TABS ────────────────────────────────────────────────────────── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab-btn { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: .83rem; transition: all .2s; }
+  .tab-btn.active { background: linear-gradient(135deg, rgba(245,200,66,.2), rgba(200,106,16,.2)); border-color: var(--amber); color: var(--gold); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
 
-    /* CARDS */
-    .card { background:linear-gradient(145deg,rgba(18,8,2,0.95),rgba(10,4,1,0.98)); border:1px solid rgba(255,140,0,0.2); border-radius:var(--r); padding:20px; margin-bottom:12px; position:relative; overflow:hidden; box-shadow:0 0 40px rgba(255,140,0,0.06); }
-    .card-title { font-size:0.62em; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:rgba(255,215,0,0.38); margin-bottom:14px; }
+  /* ── SCAN BAR ────────────────────────────────────────────────────── */
+  .scan-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .btn-scan { padding: 9px 20px; border-radius: 8px; border: none; background: linear-gradient(135deg, var(--amber), var(--ember)); color: #fff; font-size: .88rem; font-weight: 700; cursor: pointer; transition: filter .2s; white-space: nowrap; }
+  .btn-scan:hover { filter: brightness(1.15); }
+  .btn-scan:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+  .scan-info { font-size: .78rem; color: var(--muted); font-family: monospace; }
+  .progress-wrap { flex: 1; min-width: 100px; height: 4px; background: var(--surface); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--amber); border-radius: 2px; transition: width .3s; }
 
-    /* TABS */
-    .tabs { display:flex; gap:4px; background:rgba(0,0,0,0.3); padding:4px; border-radius:11px; margin-bottom:16px; flex-wrap:wrap; }
-    .tab { flex:1; min-width:70px; padding:8px 6px; background:transparent; border:none; cursor:pointer; font-family:var(--body); font-weight:700; font-size:0.8em; color:var(--dim); border-radius:8px; transition:all 0.18s; letter-spacing:0.04em; text-transform:uppercase; }
-    .tab:hover { color:var(--cream); background:rgba(255,140,0,0.1); }
-    .tab.active { background:rgba(255,140,0,0.14); color:var(--gold); border:1px solid rgba(255,215,0,0.2); }
-    .tab-panel { display:none; }
-    .tab-panel.active { display:block; }
+  /* ── VAULT CARDS ─────────────────────────────────────────────────── */
+  .vault-list { display: flex; flex-direction: column; gap: 10px; }
+  .vault-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .vault-card.liquidatable { border-color: rgba(244,67,54,.4); background: rgba(244,67,54,.04); }
+  .vault-card.zombie       { border-color: rgba(255,152,0,.4); background: rgba(255,152,0,.04); }
+  .vault-card.redeemable   { border-color: rgba(245,200,66,.3); background: rgba(245,200,66,.03); }
+  .vc-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .vc-addr { font-family: monospace; font-size: .82rem; color: var(--amber); }
+  .vc-cr { font-size: .7rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .vc-cr.safe    { background: rgba(76,175,80,.15); color: var(--safe); }
+  .vc-cr.warn    { background: rgba(255,152,0,.15); color: var(--warn); }
+  .vc-cr.danger  { background: rgba(244,67,54,.15); color: var(--danger); }
+  .vc-tag { font-size: .68rem; padding: 2px 8px; border-radius: 20px; background: rgba(244,67,54,.15); color: var(--danger); }
+  .vc-tag.zombie { background: rgba(255,152,0,.15); color: var(--warn); }
+  .vc-tag.redeem { background: rgba(245,200,66,.12); color: var(--gold); }
+  .vc-tag.sp { background: rgba(76,175,80,.15); color: var(--safe); }
+  .vc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  @media(max-width:520px) { .vc-grid { grid-template-columns: repeat(2, 1fr); } }
+  .vc-stat .sk { font-size: .65rem; color: var(--muted); margin-bottom: 3px; }
+  .vc-stat .sv { font-size: .85rem; font-family: monospace; font-weight: 600; }
+  .vc-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .action-input { display: flex; gap: 6px; flex: 1; min-width: 160px; }
+  .action-input input { flex: 1; padding: 7px 10px; border-radius: 6px; background: var(--panel); border: 1px solid var(--border); color: var(--text); font-size: .82rem; outline: none; }
+  .action-input input:focus { border-color: var(--amber); }
+  .btn-liq { padding: 7px 14px; border-radius: 7px; border: 1px solid rgba(244,67,54,.4); background: rgba(244,67,54,.1); color: var(--danger); font-size: .8rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .btn-liq:hover { background: rgba(244,67,54,.2); }
+  .btn-redeem { padding: 7px 14px; border-radius: 7px; border: 1px solid rgba(245,200,66,.3); background: rgba(245,200,66,.08); color: var(--gold); font-size: .8rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .btn-redeem:hover { background: rgba(245,200,66,.15); }
+  .btn-clear { padding: 7px 14px; border-radius: 7px; border: 1px solid rgba(255,152,0,.4); background: rgba(255,152,0,.1); color: var(--warn); font-size: .8rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .btn-clear:hover { background: rgba(255,152,0,.2); }
+  .btn-sp { padding: 7px 14px; border-radius: 7px; border: 1px solid rgba(76,175,80,.4); background: rgba(76,175,80,.1); color: var(--safe); font-size: .8rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .btn-sp:hover { background: rgba(76,175,80,.2); }
+  .btn-secondary { padding: 7px 14px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: .8rem; cursor: pointer; }
+  .btn-secondary:hover { border-color: var(--amber); color: var(--gold); }
+  .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: .85rem; font-weight: 700; transition: all .2s; }
 
-    /* EXPLAINER */
-    .explainer { background:rgba(255,215,0,0.04); border:1px solid rgba(255,215,0,0.1); border-radius:10px; padding:13px 16px; margin-bottom:14px; }
-    .explainer-title { font-size:0.65em; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,215,0,0.5); margin-bottom:8px; }
-    .explainer p { font-size:0.82em; color:var(--muted); line-height:1.55; margin-bottom:7px; }
-    .explainer p:last-child { margin-bottom:0; }
-    .explainer strong { color:var(--gold); font-weight:600; }
+  /* ── BONUS BAR ───────────────────────────────────────────────────── */
+  .bonus-bar-wrap { margin-bottom: 12px; }
+  .bonus-bar-label { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); margin-bottom: 4px; }
+  .bonus-bar-track { height: 5px; background: var(--panel); border-radius: 3px; overflow: hidden; }
+  .bonus-bar-fill { height: 100%; border-radius: 3px; transition: width .5s, background .5s; }
 
-    /* SCAN BAR */
-    .scan-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
-    .btn-scan { background:linear-gradient(135deg,var(--amber),#FF6600); color:#fff; border:none; border-radius:9px; font-family:var(--body); font-weight:700; font-size:0.85em; padding:10px 20px; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
-    .btn-scan:hover { box-shadow:0 0 24px rgba(255,140,0,0.35); transform:translateY(-1px); }
-    .btn-scan:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
-    .scan-info { font-size:0.78em; color:var(--dim); font-family:var(--mono); }
-    .progress-bar { flex:1; min-width:120px; height:4px; background:rgba(255,255,255,0.06); border-radius:100px; overflow:hidden; }
-    .progress-fill { height:100%; border-radius:100px; background:var(--amber); transition:width 0.3s; }
+  /* ── LOOKUP ──────────────────────────────────────────────────────── */
+  .lookup-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .lookup-row input { flex: 1; min-width: 200px; padding: 9px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: .88rem; outline: none; }
+  .lookup-row input:focus { border-color: var(--amber); }
+  .lookup-row .btn-lookup { padding: 9px 18px; border-radius: 8px; border: 1px solid var(--amber); background: transparent; color: var(--gold); cursor: pointer; font-size: .88rem; font-weight: 600; white-space: nowrap; }
+  #lookupResult { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
 
-    /* VAULT LIST */
-    .vault-list { display:flex; flex-direction:column; gap:8px; }
-    .vault-row {
-      background:rgba(255,140,0,0.04); border:1px solid rgba(255,140,0,0.13); border-radius:11px;
-      padding:14px 16px; transition:border-color 0.2s;
-    }
-    .vault-row.liquidatable { border-color:rgba(255,45,85,0.4); background:rgba(255,45,85,0.04); }
-    .vault-row.zombie       { border-color:rgba(255,165,0,0.45); background:rgba(255,165,0,0.04); }
-    .vault-row.redeemable   { border-color:rgba(255,215,0,0.28); background:rgba(255,215,0,0.03); }
-    .vr-top { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
-    .vr-addr { font-family:var(--mono); font-size:0.8em; color:var(--amber); }
-    .vr-status { font-size:0.68em; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; padding:3px 9px; border-radius:5px; }
-    .vr-status.liquidatable { color:var(--risk); background:rgba(255,45,85,0.12); border:1px solid rgba(255,45,85,0.25); }
-    .vr-status.zombie       { color:var(--warn); background:rgba(255,165,0,0.1); border:1px solid rgba(255,165,0,0.25); }
-    .vr-status.redeemable   { color:var(--gold); background:rgba(255,215,0,0.08); border:1px solid rgba(255,215,0,0.2); }
-    .vr-status.safe         { color:var(--safe); background:rgba(0,255,178,0.06); border:1px solid rgba(0,255,178,0.15); }
-    .vr-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; }
-    @media (min-width:500px) { .vr-stats { grid-template-columns:repeat(4,1fr); } }
-    .vr-stat { }
-    .vr-stat-label { font-size:0.6em; color:var(--dim); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:2px; font-weight:600; }
-    .vr-stat-val { font-size:0.84em; font-weight:700; font-family:var(--mono); color:var(--amber); }
-    .vr-stat-val.risk { color:var(--risk); }
-    .vr-stat-val.warn { color:var(--warn); }
-    .vr-stat-val.safe { color:var(--safe); }
-    .vr-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
-    .vr-btn { padding:6px 14px; border-radius:7px; font-weight:700; font-size:0.78em; cursor:pointer; border:1px solid; transition:all 0.15s; }
-    .vr-btn.liq  { color:var(--risk); border-color:rgba(255,45,85,0.4); background:rgba(255,45,85,0.06); }
-    .vr-btn.liq:hover { background:rgba(255,45,85,0.14); }
-    .vr-btn.redeem { color:var(--gold); border-color:rgba(255,215,0,0.35); background:rgba(255,215,0,0.05); }
-    .vr-btn.redeem:hover { background:rgba(255,215,0,0.1); }
-    .vr-btn.zombie { color:var(--warn); border-color:rgba(255,165,0,0.35); background:rgba(255,165,0,0.05); }
-    .vr-btn.zombie:hover { background:rgba(255,165,0,0.12); }
-    .empty-state { text-align:center; padding:32px 0; color:var(--dim); font-size:0.85em; }
+  /* ── STATUS ──────────────────────────────────────────────────────── */
+  #statusMsg { margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: .82rem; display: none; }
+  #statusMsg.ok   { display: block; background: rgba(76,175,80,.12); border: 1px solid rgba(76,175,80,.3); color: var(--safe); }
+  #statusMsg.err  { display: block; background: rgba(244,67,54,.12); border: 1px solid rgba(244,67,54,.3); color: var(--danger); }
+  #statusMsg.wait { display: block; background: rgba(33,150,243,.1); border: 1px solid rgba(33,150,243,.3); color: var(--info); }
 
-    /* MODAL */
-    .modal-overlay { position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); display:none; align-items:center; justify-content:center; padding:20px; }
-    .modal-overlay.open { display:flex; }
-    .modal-box { background:#0D000A; border:1px solid rgba(255,140,0,0.28); border-radius:18px; padding:24px; max-width:520px; width:100%; max-height:88vh; overflow-y:auto; position:relative; }
-    .modal-close { position:absolute; top:14px; right:16px; background:transparent; border:none; color:var(--dim); font-size:1.4em; cursor:pointer; }
-    .modal-close:hover { color:var(--cream); }
-    .modal-title { font-family:var(--head); font-style:italic; font-size:1.4em; color:var(--gold); margin-bottom:4px; }
-    .modal-sub   { font-size:0.78em; color:var(--dim); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:16px; }
-    .modal-info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
-    .mi-cell { background:rgba(255,140,0,0.06); border:1px solid rgba(255,140,0,0.13); border-radius:9px; padding:10px 12px; }
-    .mi-label { font-size:0.6em; color:var(--dim); text-transform:uppercase; font-weight:600; letter-spacing:0.05em; margin-bottom:3px; }
-    .mi-val   { font-size:0.9em; font-weight:700; font-family:var(--mono); color:var(--amber); }
-    .mi-val.risk { color:var(--risk); }
-    .mi-val.safe { color:var(--safe); }
-    .mi-val.warn { color:var(--warn); }
-    .modal-input-group { margin-bottom:12px; }
-    .modal-input-label { font-size:0.7em; font-weight:700; text-transform:uppercase; color:var(--dim); margin-bottom:6px; letter-spacing:0.07em; }
-    .modal-input { width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,140,0,0.2); border-radius:9px; padding:11px 14px; font-family:var(--mono); font-size:0.9em; color:var(--cream); outline:none; }
-    .modal-input:focus { border-color:rgba(255,215,0,0.38); }
-    .modal-preview { font-size:0.8em; color:var(--dim); font-family:var(--mono); margin-bottom:12px; display:flex; flex-wrap:wrap; gap:8px; }
-    .modal-preview .mk { color:rgba(255,245,228,0.38); }
-    .modal-preview .mv { color:var(--amber); }
-    .btn-modal-primary { width:100%; padding:12px; border-radius:10px; font-family:var(--body); font-weight:700; font-size:0.9em; cursor:pointer; border:none; background:linear-gradient(135deg,var(--amber),#FF6600); color:#fff; transition:all 0.2s; margin-bottom:8px; }
-    .btn-modal-primary:hover { box-shadow:0 0 28px rgba(255,140,0,0.3); }
-    .btn-modal-max { width:100%; padding:10px; border-radius:9px; font-family:var(--body); font-weight:700; font-size:0.82em; cursor:pointer; border:1px solid rgba(255,140,0,0.3); background:transparent; color:var(--amber); transition:all 0.15s; }
-    .btn-modal-max:hover { background:rgba(255,140,0,0.1); }
-    .warning-box { background:rgba(255,45,85,0.07); border:1px solid rgba(255,45,85,0.28); border-radius:9px; padding:11px 14px; margin-bottom:14px; font-size:0.8em; color:rgba(255,245,228,0.72); line-height:1.5; }
-    .warning-box strong { color:var(--risk); }
+  /* ── EMPTY STATE ─────────────────────────────────────────────────── */
+  .empty-state { text-align: center; padding: 32px 0; color: var(--muted); font-size: .85rem; }
 
-    /* LOOKUP */
-    .lookup-input-row { display:flex; gap:8px; margin-bottom:14px; }
-    .lookup-input { flex:1; background:rgba(255,255,255,0.04); border:1px solid rgba(255,140,0,0.2); border-radius:9px; padding:11px 14px; font-family:var(--mono); font-size:0.88em; color:var(--cream); outline:none; }
-    .lookup-input:focus { border-color:rgba(255,215,0,0.38); }
-    .btn-lookup { background:rgba(255,140,0,0.14); border:1px solid rgba(255,140,0,0.3); color:var(--amber); font-weight:700; font-size:0.85em; padding:11px 18px; border-radius:9px; cursor:pointer; white-space:nowrap; }
-    .lookup-result { background:rgba(255,140,0,0.04); border:1px solid rgba(255,140,0,0.14); border-radius:11px; padding:16px; }
-    .lr-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-    @media (min-width:500px) { .lr-grid { grid-template-columns:repeat(3,1fr); } }
-    .lr-cell { background:rgba(0,0,0,0.2); border-radius:8px; padding:10px 12px; }
-    .lr-label { font-size:0.6em; color:var(--dim); text-transform:uppercase; font-weight:600; margin-bottom:3px; }
-    .lr-val   { font-size:0.88em; font-weight:700; font-family:var(--mono); color:var(--amber); }
-
-    /* MISC */
-    .section-head { display:flex; align-items:center; gap:10px; margin:22px 0 10px; }
-    .section-label { font-size:0.64em; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:rgba(255,215,0,0.38); white-space:nowrap; }
-    .section-line { flex:1; height:1px; background:linear-gradient(90deg,rgba(255,140,0,0.2),transparent); }
-    .liq-warning { background:rgba(255,45,85,0.07); border:1px solid rgba(255,45,85,0.3); border-radius:10px; padding:12px 14px; margin-bottom:12px; font-size:0.82em; color:rgba(255,245,228,0.75); line-height:1.5; }
-    .liq-warning strong { color:var(--risk); }
-    .bonus-bar { height:5px; border-radius:100px; background:rgba(255,255,255,0.06); margin-top:6px; overflow:hidden; }
-    .bonus-fill { height:100%; border-radius:100px; background:linear-gradient(90deg,var(--risk),var(--warn)); }
-  </style>
+  /* ── SCROLLBAR ───────────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
 </head>
 <body>
-<canvas id="bg-canvas"></canvas>
+<canvas id="bg"></canvas>
 
 <!-- NAV -->
-<nav class="nav">
-  <a class="nav-brand" href="index.html">
-    <img src="sundailogo.png" alt="SunDAI"/>
-    <span class="nav-brand-text">bSunDAI</span>
-    <span class="nav-badge">BASE V7</span>
-  </a>
-  <div class="nav-links">
-    <a class="nav-link" href="index.html">Vault</a>
-    <a class="nav-link active" href="liquidations.html">Liquidate</a>
-  </div>
-  <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">Connect Wallet</button>
+<nav>
+  <img src="sundailogo.png" alt="SunDAI" class="logo">
+  <span class="brand">bSunDAI</span>
+  <span class="badge">BASE V9</span>
+  <div class="spacer"></div>
+  <a href="index.html" class="back-link">← Vault</a>
+  <button id="walletBtn" onclick="connectWallet()">Connect Wallet</button>
 </nav>
 
 <!-- ORACLE BAR -->
-<div class="oracle-bar" id="oracleBar">
-  <span class="ob-dot"></span>
-  <span id="obPrice">ETH —</span>
-  <span class="ob-sep">|</span>
-  <span id="obStatus">Oracle Loading…</span>
-  <span class="ob-sep" id="obWarnSep" style="display:none">|</span>
-  <span id="obWarn" style="display:none"></span>
+<div id="oracleBar">
+  <div class="ob-dot" id="obDot"></div>
+  <span id="obLabel" style="font-weight:600;color:var(--text)">Oracle</span>
+  <span id="obPrice" style="font-family:monospace;color:var(--gold)">—</span>
 </div>
 
-<div class="page">
-  <div class="page-header">
-    <div>
-      <div class="page-title">Vault Dashboard</div>
-      <div class="page-sub">bSunDAI V7 · Base Chain</div>
-    </div>
-  </div>
+<!-- MAIN -->
+<main>
+  <div class="panel">
+    <div class="panel-title">Vault Dashboard — bSunDAI V9 · Base Chain</div>
 
-  <div class="toast-area"><span id="toast" class="toast" style="display:none"></span></div>
-
-  <div class="card">
     <div class="tabs">
-      <button class="tab active" onclick="switchTab('liquidate')">Liquidate</button>
-      <button class="tab" onclick="switchTab('redeem')">Redeem</button>
-      <button class="tab" onclick="switchTab('allvaults')">All Vaults</button>
-      <button class="tab" onclick="switchTab('lookup')">Lookup</button>
+      <button class="tab-btn active" onclick="switchTab('liquidate',this)">Liquidate</button>
+      <button class="tab-btn" onclick="switchTab('redeem',this)">Redeem</button>
+      <button class="tab-btn" onclick="switchTab('allvaults',this)">All Vaults</button>
+      <button class="tab-btn" onclick="switchTab('lookup',this)">Lookup</button>
     </div>
 
     <!-- LIQUIDATE TAB -->
-    <div class="tab-panel active" id="tab-liquidate">
-      <div class="explainer">
-        <div class="explainer-title">Liquidate Under-Collateralized Vaults</div>
-        <p>Vaults below <strong>110% CR</strong> are eligible for liquidation. Repay some or all of a vault's bSunDAI debt and receive proportional ETH collateral plus a <strong>bonus</strong>.</p>
-        <p><strong>V7 inverted Dutch auction:</strong> Bonus starts at <strong>10%</strong> when the vault first becomes liquidatable and decays to <strong>2%</strong> over 3 hours. First mover wins the largest bonus. This design minimizes bad debt by incentivizing immediate action — unlike V6 where bonus grew over time, causing bots to wait.</p>
-        <p><strong>V7 dual-price:</strong> If Chainlink has been 3%+ below committed price for 30+ minutes, liquidation eligibility uses live Chainlink price. This closes the bad-debt window inherent in conservative price stepping during a real crash.</p>
+    <div class="tab-pane active" id="tab-liquidate">
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:14px;line-height:1.6">
+        Scans all vaults for liquidation opportunities. <strong style="color:var(--text)">Inverted Dutch auction:</strong> bonus starts at <strong style="color:var(--danger)">10%</strong> and decays to 2% over 3 hours. First mover wins the highest bonus. bSunDAI approval required to liquidate.
       </div>
       <div class="scan-bar">
-        <button class="btn-scan" id="scanLiqBtn" onclick="scanLiquidatable()">Scan Liquidatable Vaults</button>
-        <div class="scan-info" id="liqScanInfo">—</div>
-        <div class="progress-bar" id="liqProgress" style="display:none"><div class="progress-fill" id="liqProgressFill" style="width:0%"></div></div>
+        <button class="btn-scan" id="scanLiqBtn" onclick="scanLiquidatable()">Scan Liquidatable</button>
+        <span class="scan-info" id="liqScanInfo">—</span>
+        <div class="progress-wrap" id="liqProgressWrap" style="display:none">
+          <div class="progress-fill" id="liqProgressFill" style="width:0%"></div>
+        </div>
       </div>
-      <div class="vault-list" id="liqList"><div class="empty-state">Scan to find liquidatable vaults.</div></div>
+      <div class="vault-list" id="liqList">
+        <div class="empty-state">Connect wallet and scan to find liquidatable vaults.</div>
+      </div>
     </div>
 
     <!-- REDEEM TAB -->
-    <div class="tab-panel" id="tab-redeem">
-      <div class="explainer">
-        <div class="explainer-title">Redeem bSunDAI for ETH at $1 Rate</div>
-        <p>Burn bSunDAI and receive ETH at the current oracle price — <strong>1 bSunDAI = $1 USD worth of ETH</strong>, always. This is the hard peg mechanism. Redemptions are available against any vault with sufficient debt.</p>
-        <p>You receive: <code>bSunDAI × $1 / ETH_price</code> ETH, minus <strong>0.5% fee</strong> which stays with the vault owner. Minimum: <strong>100 bSunDAI</strong> per redemption. Oracle must be fresh.</p>
-        <p>Unlike liquidations, there is no CR requirement for a vault to be redeemable. Any vault with enough debt to cover your amount is eligible. The vault owner's debt decreases by the bSunDAI burned.</p>
+    <div class="tab-pane" id="tab-redeem">
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:14px;line-height:1.6">
+        Redeem bSunDAI for ETH at the oracle price — <strong style="color:var(--text)">1 bSunDAI = $1 USD worth of ETH</strong>, always. Any vault with sufficient debt is redeemable regardless of CR. 0.5% fee stays with the vault owner. Minimum 100 bSunDAI. bSunDAI approval required.
       </div>
       <div class="scan-bar">
-        <button class="btn-scan" id="scanRedeemBtn" onclick="scanRedeemable()">Scan Vaults for Redemption</button>
-        <div class="scan-info" id="redeemScanInfo">—</div>
-        <div class="progress-bar" id="redeemProgress" style="display:none"><div class="progress-fill" id="redeemProgressFill" style="width:0%"></div></div>
+        <button class="btn-scan" id="scanRedeemBtn" onclick="scanRedeemable()">Scan Redeemable Vaults</button>
+        <span class="scan-info" id="redeemScanInfo">—</span>
+        <div class="progress-wrap" id="redeemProgressWrap" style="display:none">
+          <div class="progress-fill" id="redeemProgressFill" style="width:0%"></div>
+        </div>
       </div>
-      <div class="vault-list" id="redeemList"><div class="empty-state">Scan to find vaults for redemption.</div></div>
+      <div class="vault-list" id="redeemList">
+        <div class="empty-state">Connect wallet and scan to find redeemable vaults.</div>
+      </div>
     </div>
 
     <!-- ALL VAULTS TAB -->
-    <div class="tab-panel" id="tab-allvaults">
-      <div class="explainer">
-        <div class="explainer-title">All Protocol Vaults</div>
-        <p>Complete list of all addresses that have interacted with the vault. Includes active vaults, vaults with collateral only, and historical vaults with zero balance. Sorted by CR (liquidatable first).</p>
-        <p>Click <strong>Liquidate</strong> on any at-risk vault to open the action modal.</p>
+    <div class="tab-pane" id="tab-allvaults">
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:14px;line-height:1.6">
+        Complete list of all protocol vaults, sorted by CR (lowest first). Includes active, at-risk, and liquidatable vaults.
       </div>
       <div class="scan-bar">
         <button class="btn-scan" id="scanAllBtn" onclick="scanAll()">Scan All Vaults</button>
-        <div class="scan-info" id="allScanInfo">—</div>
-        <div class="progress-bar" id="allProgress" style="display:none"><div class="progress-fill" id="allProgressFill" style="width:0%"></div></div>
+        <span class="scan-info" id="allScanInfo">—</span>
+        <div class="progress-wrap" id="allProgressWrap" style="display:none">
+          <div class="progress-fill" id="allProgressFill" style="width:0%"></div>
+        </div>
       </div>
-      <div class="vault-list" id="allList"><div class="empty-state">Scan to load all vaults.</div></div>
+      <div class="vault-list" id="allList">
+        <div class="empty-state">Connect wallet and scan to load all vaults.</div>
+      </div>
     </div>
 
     <!-- LOOKUP TAB -->
-    <div class="tab-panel" id="tab-lookup">
-      <div class="explainer">
-        <div class="explainer-title">Look Up Any Vault</div>
-        <p>Enter a wallet address to view full vault details: collateral, debt, CR, liquidation info, redemption preview, bad debt status. Useful for monitoring specific addresses.</p>
+    <div class="tab-pane" id="tab-lookup">
+      <div style="font-size:.82rem;color:var(--muted);margin-bottom:14px">
+        Look up any vault address to see its full state: collateral, debt, CR, liquidation info, redemption preview.
       </div>
-      <div class="lookup-input-row">
-        <input class="lookup-input" id="lookupInput" placeholder="0x… vault owner address"/>
-        <button class="btn-lookup" onclick="doLookup()">Look Up</button>
+      <div class="lookup-row">
+        <input type="text" id="lookupAddr" placeholder="0x vault owner address…">
+        <button class="btn-lookup" onclick="lookupVault()">Look Up</button>
       </div>
-      <div id="lookupResult" style="display:none" class="lookup-result">
-        <div class="card-title" style="margin-bottom:12px">Vault Details</div>
-        <div class="lr-grid">
-          <div class="lr-cell"><div class="lr-label">Collateral</div><div class="lr-val" id="lrColl">—</div></div>
-          <div class="lr-cell"><div class="lr-label">Debt</div><div class="lr-val" id="lrDebt">—</div></div>
-          <div class="lr-cell"><div class="lr-label">Coll. Value</div><div class="lr-val" id="lrCollUSD">—</div></div>
-          <div class="lr-cell"><div class="lr-label">CR</div><div class="lr-val" id="lrCR">—</div></div>
-          <div class="lr-cell"><div class="lr-label">Mintable</div><div class="lr-val" id="lrMintable">—</div></div>
-          <div class="lr-cell"><div class="lr-label">Oracle</div><div class="lr-val" id="lrOracle">—</div></div>
-          <div class="lr-cell"><div class="lr-label">Liq Bonus</div><div class="lr-val" id="lrBonus">—</div></div>
-          <div class="lr-cell"><div class="lr-label">Repay to Safe</div><div class="lr-val" id="lrRepayNeeded">—</div></div>
-          <div class="lr-cell"><div class="lr-label">Zombie?</div><div class="lr-val" id="lrZombie">—</div></div>
-        </div>
-        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-          <button class="vr-btn liq" id="lrLiqBtn" onclick="openLiqModal(currentLookup)" style="display:none">Liquidate</button>
-          <button class="vr-btn redeem" id="lrRedeemBtn" onclick="openRedeemModal(currentLookup)" style="display:none">Redeem Against</button>
-          <button class="vr-btn zombie" id="lrZombieBtn" onclick="doClearBadDebt(currentLookup?.address)" style="display:none">Clear Bad Debt</button>
-        </div>
-      </div>
+      <div id="lookupResult" style="display:none"></div>
     </div>
+
+    <div id="statusMsg"></div>
   </div>
-</div>
-
-<!-- LIQUIDATE MODAL -->
-<div class="modal-overlay" id="liqModal" onclick="if(event.target===this)closeLiqModal()">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeLiqModal()">✕</button>
-    <div class="modal-title">Liquidate Vault</div>
-    <div class="modal-sub" id="liqModalAddr">—</div>
-
-    <div class="liq-warning">
-      <strong>Inverted Dutch Auction:</strong> Bonus is highest NOW and decays over 3 hours. Current bonus: <strong id="liqBonusPct">—</strong>. First mover wins. Do not wait.
-    </div>
-
-    <div class="modal-info-grid">
-      <div class="mi-cell"><div class="mi-label">Vault Debt</div><div class="mi-val risk" id="liqDebt">—</div></div>
-      <div class="mi-cell"><div class="mi-label">CR</div><div class="mi-val risk" id="liqCR">—</div></div>
-      <div class="mi-cell"><div class="mi-label">Max Repay</div><div class="mi-val" id="liqMaxRepay">—</div></div>
-      <div class="mi-cell"><div class="mi-label">Bonus</div><div class="mi-val" id="liqBonusVal">—</div></div>
-    </div>
-
-    <div>
-      <div style="font-size:0.65em;color:var(--dim);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px">Auction Elapsed</div>
-      <div class="bonus-bar"><div class="bonus-fill" id="liqBonusFill" style="width:100%"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:0.65em;color:var(--dim);margin-top:3px;font-family:var(--mono)">
-        <span>10% bonus (now)</span><span id="liqElapsedText">—</span><span>2% bonus (3h)</span>
-      </div>
-    </div>
-
-    <div class="modal-input-group" style="margin-top:14px">
-      <div class="modal-input-label">bSUNDAI to Repay</div>
-      <input class="modal-input" id="liqAmount" type="number" min="0" placeholder="0.0" oninput="previewLiq()"/>
-    </div>
-    <div class="modal-preview">
-      <span><span class="mk">ETH reward → </span><span class="mv" id="liqETHOut">—</span></span>
-      <span><span class="mk">Bonus ETH → </span><span class="mv" id="liqBonusOut">—</span></span>
-    </div>
-
-    <div id="liqApproveNote" style="font-size:0.78em;color:var(--warn);margin-bottom:10px;display:none">⚠ Approval needed — first click will approve, second will liquidate.</div>
-    <button class="btn-modal-primary" onclick="doLiquidate()">Liquidate</button>
-    <button class="btn-modal-max" onclick="fillLiqMax()">Use Max (full debt)</button>
-  </div>
-</div>
-
-<!-- REDEEM MODAL -->
-<div class="modal-overlay" id="redeemModal" onclick="if(event.target===this)closeRedeemModal()">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeRedeemModal()">✕</button>
-    <div class="modal-title">Redeem bSunDAI</div>
-    <div class="modal-sub" id="redeemModalAddr">—</div>
-
-    <div class="explainer" style="margin-bottom:12px">
-      <p style="font-size:0.78em">Burn bSunDAI and receive ETH at the current oracle price. <strong>1 bSunDAI = $1 USD worth of ETH</strong>. A 0.5% fee stays with the vault owner. Minimum: 100 bSunDAI.</p>
-    </div>
-
-    <div class="modal-info-grid">
-      <div class="mi-cell"><div class="mi-label">Vault Debt</div><div class="mi-val" id="redeemVaultDebt">—</div></div>
-      <div class="mi-cell"><div class="mi-label">ETH Price</div><div class="mi-val" id="redeemETHPrice">—</div></div>
-      <div class="mi-cell"><div class="mi-label">Your Balance</div><div class="mi-val" id="redeemUserBal">—</div></div>
-      <div class="mi-cell"><div class="mi-label">Fee</div><div class="mi-val">0.5% to owner</div></div>
-    </div>
-
-    <div class="modal-input-group">
-      <div class="modal-input-label">bSUNDAI to Burn</div>
-      <input class="modal-input" id="redeemAmount" type="number" min="100" placeholder="Min 100 bSUNDAI" oninput="previewRedeem()"/>
-    </div>
-    <div class="modal-preview">
-      <span><span class="mk">ETH out → </span><span class="mv" id="redeemETHOut">—</span></span>
-      <span><span class="mk">USD value → </span><span class="mv" id="redeemUSDOut">—</span></span>
-      <span><span class="mk">Fee → </span><span class="mv" id="redeemFee">—</span></span>
-    </div>
-
-    <div id="redeemApproveNote" style="font-size:0.78em;color:var(--warn);margin-bottom:10px;display:none">⚠ Approval needed — first click will approve, second will redeem.</div>
-    <button class="btn-modal-primary" onclick="doRedeem()">Redeem</button>
-    <button class="btn-modal-max" onclick="fillRedeemMax()">Use Max (vault debt or wallet balance)</button>
-  </div>
-</div>
+</main>
 
 <script>
-/* ─── CONFIG ─── */
-const VAULT_ADDR  = "0x0000000000000000000000000000000000000000"; // TBD
-const TOKEN_ADDR  = "0x0000000000000000000000000000000000000000"; // TBD
-const ORACLE_ADDR = "0x0000000000000000000000000000000000000000"; // TBD
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const VAULT_ADDR  = "0x974cb2F1f02c520B796d0F0ECc9b8F58d69E0913";
+const TOKEN_ADDR  = "0x0594A2B4916dc2299e8e322973dC344C8c92BF4c";
+const ORACLE_ADDR = "0xdDbfBF4F6FCf11E9E8Ea1b2E2054e8ffeBC2dF9e";
 const CHAIN_ID    = 8453n;
 const CHAIN_HEX   = "0x2105";
 const BATCH_SIZE  = 8;
 
-/* ─── STATE ─── */
 let provider, signer, userAddr;
-let vaultC, tokenC, oracleC;
+let vault, token, oracle;
 let ethPrice = 0;
+let spTotal = 0n;
 let userTokenBalance = 0n;
-let currentLiq = null, currentRedeem = null, currentLookup = null;
 
-/* ─── ABI CACHE ─── */
 let VAULT_ABI, TOKEN_ABI, ORACLE_ABI;
 async function loadABIs() {
   if (VAULT_ABI) return;
   [VAULT_ABI, TOKEN_ABI, ORACLE_ABI] = await Promise.all([
-    fetch('sundai-vault-v7-abi.json').then(r => r.json()),
-    fetch('sundai-token-v7-abi.json').then(r => r.json()),
-    fetch('sundai-oracle-v7-abi.json').then(r => r.json()),
+    fetch('sundai-vault-v9-abi.json').then(r => r.json()),
+    fetch('sundai-token-v9-abi.json').then(r => r.json()),
+    fetch('sundai-oracle-v9-abi.json').then(r => r.json()),
   ]);
 }
 
-/* ─── CONNECT ─── */
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const ZERO = 0n;
+const shortAddr = a => a.slice(0,6) + "…" + a.slice(-4);
+const fmt18 = v => {
+  const n = Number(ethers.formatUnits(v, 18));
+  if (n >= 1000) return n.toLocaleString("en", {maximumFractionDigits:2});
+  return n.toFixed(4);
+};
+const fmtETHPrice = v => {
+  const n = Number(ethers.formatUnits(v, 18));
+  if (n >= 1000) return "$" + n.toLocaleString("en", {maximumFractionDigits:0});
+  return "$" + n.toFixed(2);
+};
+const fmtSecs = s => {
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${sec}s`;
+  return `${sec}s`;
+};
+const crClass = r => {
+  const n = Number(r);
+  if (n < 110) return "danger";
+  if (n < 150) return "warn";
+  return "safe";
+};
+
+function showStatus(msg, type) {
+  const el = document.getElementById("statusMsg");
+  el.textContent = msg;
+  el.className = type;
+  if (type === "ok") setTimeout(() => { el.className = ""; }, 5000);
+}
+
+function setText(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
+
+// ── CANVAS ────────────────────────────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById("bg");
+  const ctx = canvas.getContext("2d");
+  let W, H, particles = [];
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  function init() {
+    particles = Array.from({length:60}, () => ({
+      x:Math.random()*W, y:Math.random()*H,
+      vx:(Math.random()-.5)*.25, vy:(Math.random()-.5)*.25,
+      r:Math.random()*1.4+.3, a:Math.random()*.45+.08
+    }));
+  }
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    const g = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*.55);
+    g.addColorStop(0,"rgba(245,200,66,.035)"); g.addColorStop(1,"transparent");
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    for (const p of particles) {
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(245,200,66,${p.a})`; ctx.fill();
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0; if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+    }
+    requestAnimationFrame(draw);
+  }
+  resize(); init(); draw();
+  window.addEventListener("resize",()=>{resize();init();});
+})();
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  btn.classList.add("active");
+}
+
+// ── WALLET ────────────────────────────────────────────────────────────────────
 async function connectWallet() {
-  if (!window.ethereum) return toast("MetaMask not detected", "err");
+  if (!window.ethereum) return showStatus("No wallet detected","err");
   await loadABIs();
   try {
     provider = new ethers.BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
+    await provider.send("eth_requestAccounts",[]);
     const net = await provider.getNetwork();
     if (net.chainId !== CHAIN_ID) {
-      try {
-        await provider.send("wallet_switchEthereumChain", [{ chainId: CHAIN_HEX }]);
-      } catch {
-        await provider.send("wallet_addEthereumChain", [{
-          chainId: CHAIN_HEX, chainName: "Base",
-          nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-          rpcUrls: ["https://mainnet.base.org"], blockExplorerUrls: ["https://basescan.org"]
-        }]);
-      }
+      try { await provider.send("wallet_switchEthereumChain",[{chainId:CHAIN_HEX}]); }
+      catch { await provider.send("wallet_addEthereumChain",[{ chainId:CHAIN_HEX, chainName:"Base", nativeCurrency:{name:"ETH",symbol:"ETH",decimals:18}, rpcUrls:["https://mainnet.base.org"], blockExplorerUrls:["https://basescan.org"] }]); }
       provider = new ethers.BrowserProvider(window.ethereum);
     }
     signer = await provider.getSigner();
     userAddr = await signer.getAddress();
-    vaultC  = new ethers.Contract(VAULT_ADDR,  VAULT_ABI,  signer);
-    tokenC  = new ethers.Contract(TOKEN_ADDR,  TOKEN_ABI,  signer);
-    oracleC = new ethers.Contract(ORACLE_ADDR, ORACLE_ABI, provider);
-    const shortAddr = userAddr.slice(0,6)+"…"+userAddr.slice(-4);
-    document.getElementById('walletBtn').textContent = shortAddr;
-    document.getElementById('walletBtn').classList.add('connected');
-    await refreshBar();
-    setInterval(refreshBar, 18000);
-  } catch(e) { toast(parseRevert(e), "err"); }
+    vault  = new ethers.Contract(VAULT_ADDR, VAULT_ABI, signer);
+    token  = new ethers.Contract(TOKEN_ADDR, TOKEN_ABI, signer);
+    oracle = new ethers.Contract(ORACLE_ADDR, ORACLE_ABI, provider);
+    document.getElementById("walletBtn").textContent = shortAddr(userAddr);
+    await refreshOracle();
+    setInterval(refreshOracle, 20000);
+  } catch(e) { showStatus(e.message?.split('\n')[0] || "Connection failed","err"); }
 }
 
-async function refreshBar() {
+async function refreshOracle() {
   if (!provider) return;
   try {
-    const [info, priceStatus, sourceStatus, warnElapsed, liqEnabled] = await Promise.all([
-      vaultC.vaultInfo(userAddr || ethers.ZeroAddress),
-      oracleC.getPriceStatus(),
-      oracleC.getSourceStatus(),
-      oracleC.chainlinkWarningElapsed(),
-      oracleC.isChainlinkLiquidationEnabled()
+    const [info, ps, sp] = await Promise.all([
+      vault.vaultInfo(userAddr || ethers.ZeroAddress),
+      oracle.getPriceStatus(),
+      vault.totalStabilityDeposits(),
     ]);
     ethPrice = Number(info.price) / 1e18;
-    if (userAddr) {
-      userTokenBalance = await tokenC.balanceOf(userAddr);
+    spTotal = sp;
+    if (userAddr) userTokenBalance = await token.balanceOf(userAddr);
+    const [currentPrice,,,,,,warningActive, liqEnabled] = ps;
+    const oBar = document.getElementById("obDot");
+    const oLabel = document.getElementById("obLabel");
+    setText("obPrice", currentPrice > ZERO ? fmtETHPrice(currentPrice) : "—");
+    if (liqEnabled) {
+      oBar.className = "ob-dot red"; oLabel.textContent = "Chainlink Liq Active";
+    } else if (warningActive) {
+      oBar.className = "ob-dot amber"; oLabel.textContent = "Chainlink Warning";
+    } else if (!info.oracleHealthy) {
+      oBar.className = "ob-dot amber"; oLabel.textContent = "Oracle Stale";
+    } else {
+      oBar.className = "ob-dot green"; oLabel.textContent = "Oracle Healthy";
     }
-    updateOracleBar(info.oracleHealthy, ethPrice, priceStatus, sourceStatus, warnElapsed, liqEnabled);
-  } catch(e) { console.warn("bar refresh:", e.message); }
+  } catch(e) { console.warn("oracle refresh:", e.message); }
 }
 
-function updateOracleBar(oracleOk, price, ps, ss, warnElapsed, liqEnabled) {
-  const bar = document.getElementById('oracleBar');
-  setText('obPrice', price > 0 ? 'ETH $' + price.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}) : 'ETH —');
-
-  const srcMap = ['—','CHAINLINK','TWAP','CL+TWAP'];
-  const src = srcMap[Number(ss?.source||0)] || '—';
-
-  if (liqEnabled) {
-    bar.className = 'oracle-bar liq';
-    setText('obStatus', src + ' · ⚡ CHAINLINK LIQ ACTIVE');
-    document.getElementById('obWarnSep').style.display = 'none';
-    document.getElementById('obWarn').style.display = 'none';
-  } else if (ps?.chainlinkWarningActive) {
-    bar.className = 'oracle-bar warn';
-    const elapsed = Number(warnElapsed||0);
-    const mins = Math.floor(elapsed/60), secs = elapsed%60;
-    setText('obStatus', src);
-    document.getElementById('obWarnSep').style.display = '';
-    const wo = document.getElementById('obWarn');
-    wo.style.display = '';
-    wo.textContent = '⚠ WARNING ' + mins + 'm ' + secs + 's / 30m';
-  } else if (!oracleOk) {
-    bar.className = 'oracle-bar stale';
-    setText('obStatus', 'ORACLE STALE');
-    document.getElementById('obWarnSep').style.display = 'none';
-    document.getElementById('obWarn').style.display = 'none';
-  } else {
-    bar.className = 'oracle-bar';
-    setText('obStatus', src + ' · FRESH');
-    document.getElementById('obWarnSep').style.display = 'none';
-    document.getElementById('obWarn').style.display = 'none';
-  }
-}
-
-/* ─── SCAN ─── */
+// ── SCAN ──────────────────────────────────────────────────────────────────────
 async function getVaultList() {
-  const count = Number(await vaultC.getVaultCount());
+  const count = Number(await vault.getVaultCount());
   let owners = [];
   for (let i = 0; i < count; i += BATCH_SIZE) {
-    const batch = await vaultC.getVaultOwners(i, Math.min(BATCH_SIZE, count - i));
+    const batch = await vault.getVaultOwners(i, Math.min(BATCH_SIZE, count - i));
     owners = owners.concat([...batch]);
   }
   return owners;
 }
 
-async function loadVaultInfo(owner) {
+async function loadVaultData(owner) {
   const [info, liqInfo, isZombie] = await Promise.all([
-    vaultC.vaultInfo(owner),
-    vaultC.liquidationInfo(owner),
-    vaultC.isZombieVault(owner)
+    vault.vaultInfo(owner),
+    vault.liquidationInfo(owner),
+    vault.isZombieVault(owner),
   ]);
   return {
-    address: owner,
+    addr: owner,
     collateral: info.collateral,
-    debt: info.debt,
-    collUSD: info.collateralUSD,
-    ratio: info.ratio,
-    mintable: info.mintable,
-    oracleOk: info.oracleHealthy,
-    price: info.price,
+    debt:       info.debt,
+    collUSD:    info.collateralUSD,
+    ratio:      info.ratio,
+    mintable:   info.mintable,
+    price:      info.price,
+    oracleOk:   info.oracleHealthy,
     canLiquidate: liqInfo.canLiquidate,
-    maxRepay: liqInfo.maxRepay,
-    bonusBps: liqInfo.bonusBps,
-    auctionElapsed: liqInfo.auctionElapsed,
-    isZombie
+    maxRepay:   liqInfo.maxRepay,
+    bonusBps:   liqInfo.bonusBps,
+    elapsed:    liqInfo.auctionElapsed,
+    isZombie,
   };
 }
 
-async function scanLiquidatable() {
-  if (!vaultC) return toast("Connect wallet first", "err");
-  const btn = document.getElementById('scanLiqBtn');
+async function runScan(btnId, progressId, fillId, infoId, filterFn, buildFn, listId) {
+  if (!vault) return showStatus("Connect wallet first","err");
+  const btn = document.getElementById(btnId);
+  const progress = document.getElementById(progressId);
+  const fill = document.getElementById(fillId);
+  const list = document.getElementById(listId);
   btn.disabled = true;
-  btn.textContent = "Scanning…";
-  const list = document.getElementById('liqList');
-  list.innerHTML = '';
-  const progressBar = document.getElementById('liqProgress');
-  const progressFill = document.getElementById('liqProgressFill');
-  progressBar.style.display = 'block';
-
+  if (progress) progress.style.display = "block";
+  list.innerHTML = "";
   try {
     const owners = await getVaultList();
-    setText('liqScanInfo', owners.length + ' vaults found');
+    setText(infoId, owners.length + " vaults found");
     const results = [];
     for (let i = 0; i < owners.length; i += BATCH_SIZE) {
       const batch = owners.slice(i, i + BATCH_SIZE);
-      const data = await Promise.all(batch.map(loadVaultInfo));
+      const data = await Promise.all(batch.map(loadVaultData));
       results.push(...data);
-      progressFill.style.width = ((i + batch.length) / owners.length * 100) + '%';
+      if (fill) fill.style.width = ((i + batch.length) / owners.length * 100) + "%";
     }
-
-    const eligible = results.filter(v => v.canLiquidate || v.isZombie);
-    if (eligible.length === 0) {
-      list.innerHTML = '<div class="empty-state">No liquidatable vaults found. All vaults are healthy.</div>';
+    const filtered = filterFn(results);
+    if (filtered.length === 0) {
+      list.innerHTML = '<div class="empty-state">No matching vaults found.</div>';
     } else {
-      eligible.sort((a, b) => Number(a.ratio) - Number(b.ratio));
-      eligible.forEach(v => list.appendChild(buildVaultRow(v, 'liq')));
+      filtered.forEach(v => list.appendChild(buildFn(v)));
     }
-    setText('liqScanInfo', eligible.length + ' / ' + owners.length + ' eligible');
-  } catch(e) { toast(parseRevert(e), "err"); }
-
+    setText(infoId, filtered.length + " / " + owners.length);
+  } catch(e) { showStatus(e.reason || e.message || "Scan failed","err"); }
   btn.disabled = false;
-  btn.textContent = "Scan Liquidatable Vaults";
-  progressBar.style.display = 'none';
+  if (progress) progress.style.display = "none";
 }
 
-async function scanRedeemable() {
-  if (!vaultC) return toast("Connect wallet first", "err");
-  const btn = document.getElementById('scanRedeemBtn');
-  btn.disabled = true;
-  btn.textContent = "Scanning…";
-  const list = document.getElementById('redeemList');
-  list.innerHTML = '';
-  const progressFill = document.getElementById('redeemProgressFill');
-  document.getElementById('redeemProgress').style.display = 'block';
-
-  try {
-    const owners = await getVaultList();
-    const results = [];
-    for (let i = 0; i < owners.length; i += BATCH_SIZE) {
-      const batch = owners.slice(i, i + BATCH_SIZE);
-      const data = await Promise.all(batch.map(a => vaultC.vaultInfo(a).then(info => ({
-        address: a, collateral: info.collateral, debt: info.debt,
-        collUSD: info.collateralUSD, ratio: info.ratio, price: info.price
-      }))));
-      results.push(...data);
-      progressFill.style.width = ((i + batch.length) / owners.length * 100) + '%';
-    }
-
-    const withDebt = results.filter(v => v.debt > 0n);
-    if (withDebt.length === 0) {
-      list.innerHTML = '<div class="empty-state">No vaults with debt to redeem against.</div>';
-    } else {
-      withDebt.sort((a, b) => Number(a.ratio) - Number(b.ratio));
-      withDebt.forEach(v => list.appendChild(buildVaultRow(v, 'redeem')));
-    }
-    setText('redeemScanInfo', withDebt.length + ' / ' + owners.length + ' with debt');
-  } catch(e) { toast(parseRevert(e), "err"); }
-
-  btn.disabled = false;
-  btn.textContent = "Scan Vaults for Redemption";
-  document.getElementById('redeemProgress').style.display = 'none';
+function scanLiquidatable() {
+  runScan("scanLiqBtn","liqProgressWrap","liqProgressFill","liqScanInfo",
+    r => r.filter(v => v.canLiquidate || v.isZombie).sort((a,b) => Number(a.ratio)-Number(b.ratio)),
+    buildLiqCard, "liqList");
+}
+function scanRedeemable() {
+  runScan("scanRedeemBtn","redeemProgressWrap","redeemProgressFill","redeemScanInfo",
+    r => r.filter(v => v.debt > ZERO && !v.canLiquidate && !v.isZombie).sort((a,b) => Number(a.ratio)-Number(b.ratio)),
+    buildRedeemCard, "redeemList");
+}
+function scanAll() {
+  runScan("scanAllBtn","allProgressWrap","allProgressFill","allScanInfo",
+    r => [...r].sort((a,b) => Number(a.ratio)-Number(b.ratio)),
+    buildAllCard, "allList");
 }
 
-async function scanAll() {
-  if (!vaultC) return toast("Connect wallet first", "err");
-  const btn = document.getElementById('scanAllBtn');
-  btn.disabled = true;
-  btn.textContent = "Scanning…";
-  const list = document.getElementById('allList');
-  list.innerHTML = '';
-  const progressFill = document.getElementById('allProgressFill');
-  document.getElementById('allProgress').style.display = 'block';
-
-  try {
-    const owners = await getVaultList();
-    setText('allScanInfo', owners.length + ' total vaults');
-    const results = [];
-    for (let i = 0; i < owners.length; i += BATCH_SIZE) {
-      const batch = owners.slice(i, i + BATCH_SIZE);
-      const data = await Promise.all(batch.map(loadVaultInfo));
-      results.push(...data);
-      progressFill.style.width = ((i + batch.length) / owners.length * 100) + '%';
-    }
-    results.sort((a, b) => Number(a.ratio) - Number(b.ratio));
-    if (results.length === 0) {
-      list.innerHTML = '<div class="empty-state">No vaults found.</div>';
-    } else {
-      results.forEach(v => list.appendChild(buildVaultRow(v, 'all')));
-    }
-  } catch(e) { toast(parseRevert(e), "err"); }
-
-  btn.disabled = false;
-  btn.textContent = "Scan All Vaults";
-  document.getElementById('allProgress').style.display = 'none';
-}
-
-function buildVaultRow(v, mode) {
-  const div = document.createElement('div');
-  const ratio = Number(v.ratio || 0n);
-  const crStr = ratio > 99999 ? '∞' : ratio + '%';
-  const crCls  = ratio < 110 ? 'risk' : ratio < 150 ? 'warn' : 'safe';
-  const collETH = (Number(ethers.formatEther(v.collateral || 0n))).toFixed(4);
-  const debtAmt = (Number(ethers.formatEther(v.debt || 0n))).toFixed(2);
-  const collUSD = '$' + (Number(ethers.formatEther(v.collUSD || 0n))).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2});
-
-  let rowClass = 'vault-row';
-  let statusLabel = 'Safe', statusClass = 'safe';
-  let bonusStr = '—';
-
+// ── CARD BUILDERS ─────────────────────────────────────────────────────────────
+function buildLiqCard(v) {
+  const div = document.createElement("div");
   if (v.isZombie) {
-    rowClass += ' zombie'; statusLabel = 'Zombie'; statusClass = 'zombie';
-  } else if (v.canLiquidate) {
-    rowClass += ' liquidatable'; statusLabel = 'Liquidatable'; statusClass = 'liquidatable';
-    bonusStr = ((v.bonusBps || 0n) > 0n ? (Number(v.bonusBps) / 100).toFixed(1) + '% bonus' : '—');
-  } else if (v.debt > 0n && ratio < 110 && !v.canLiquidate) {
-    // Just at edge
+    div.className = "vault-card zombie";
+    div.innerHTML = `
+      <div class="vc-top">
+        <span class="vc-addr">${shortAddr(v.addr)}</span>
+        <span class="vc-cr danger">Underwater</span>
+      </div>
+      <div class="vc-grid">
+        <div class="vc-stat"><div class="sk">Collateral</div><div class="sv">${fmt18(v.collateral)} ETH</div></div>
+        <div class="vc-stat"><div class="sk">Debt</div><div class="sv">${fmt18(v.debt)} bSunDAI</div></div>
+        <div class="vc-stat"><div class="sk">Coll Value</div><div class="sv">$${(Number(ethers.formatUnits(v.collUSD,18))).toFixed(2)}</div></div>
+        <div class="vc-stat"><div class="sk">CR</div><div class="sv" style="color:var(--danger)">${Number(v.ratio) > 9999 ? "∞" : Number(v.ratio) + "%"}</div></div>
+      </div>
+      <div class="vc-actions">
+        <div class="action-input">
+          <input type="number" id="baddebt-amt-${v.addr}" placeholder="bSunDAI to repay" min="0" step="any">
+          <button class="btn-clear" onclick="doClearBadDebt('${v.addr}')">Clear (pro-rata, no bonus)</button>
+        </div>
+        <button class="btn-secondary btn" style="padding:6px 14px;font-size:.8rem"
+          onclick="document.getElementById('baddebt-amt-${v.addr}').value = ethers.formatUnits(${v.debt}n, 18)">
+          Max
+        </button>
+      </div>`;
+    return div;
   }
 
-  const shortAddr = v.address.slice(0,6) + '…' + v.address.slice(-4);
+  const bonusPct = (Number(v.bonusBps) / 100).toFixed(2);
+  const elapsedSecs = Number(v.elapsed);
+  const maxElapsed = 3 * 3600;
+  const progress = Math.min(elapsedSecs / maxElapsed, 1);
+  // Inverted auction: bonus starts at 10% and decays to 2%. Bar shows elapsed time.
+  // Full bar = 3 hours elapsed = low bonus. Small bar = fresh = high bonus.
+  const barPct = (progress * 100).toFixed(1);
+  const barColor = progress < 0.33 ? "var(--safe)" : progress < 0.66 ? "var(--warn)" : "var(--danger)";
 
-  div.className = rowClass;
+  const spCanCover = spTotal > ZERO;
+  const spCoversFully = spTotal >= v.debt;
+
+  div.className = "vault-card liquidatable";
   div.innerHTML = `
-    <div class="vr-top">
-      <span class="vr-addr">${shortAddr} <span style="font-size:0.85em;color:var(--dim)">(${v.address.slice(0,8)}…)</span></span>
-      <span class="vr-status ${statusClass}">${statusLabel}</span>
+    <div class="vc-top">
+      <span class="vc-addr">${shortAddr(v.addr)}</span>
+      <span class="vc-cr danger">Liquidatable</span>
+      ${spCanCover ? `<span class="vc-tag sp">SP covers ${spCoversFully ? "100%" : "partial"}</span>` : ''}
     </div>
-    <div class="vr-stats">
-      <div class="vr-stat"><div class="vr-stat-label">Collateral</div><div class="vr-stat-val">${collETH} ETH</div></div>
-      <div class="vr-stat"><div class="vr-stat-label">Coll Value</div><div class="vr-stat-val">${collUSD}</div></div>
-      <div class="vr-stat"><div class="vr-stat-label">Debt</div><div class="vr-stat-val">${debtAmt} bSUNDAI</div></div>
-      <div class="vr-stat"><div class="vr-stat-label">CR</div><div class="vr-stat-val ${crCls}">${crStr}</div></div>
+    <div class="bonus-bar-wrap">
+      <div class="bonus-bar-label">
+        <span>Bonus: <strong style="color:${barColor}">${bonusPct}%</strong></span>
+        <span>${elapsedSecs > 0 ? fmtSecs(elapsedSecs) + " elapsed" : "Just liquidatable"}</span>
+      </div>
+      <div class="bonus-bar-track">
+        <div class="bonus-bar-fill" style="width:${barPct}%;background:${barColor}"></div>
+      </div>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:2px">Bonus decays 10% → 2% over 3 hours · Act now for highest bonus</div>
     </div>
-    ${(mode === 'liq' || mode === 'all') && (v.canLiquidate || v.isZombie) ? buildLiqActions(v) : ''}
-    ${(mode === 'redeem' || mode === 'all') && v.debt > 0n && !v.canLiquidate && !v.isZombie ? buildRedeemActions(v) : ''}
-  `;
+    <div class="vc-grid">
+      <div class="vc-stat"><div class="sk">Debt</div><div class="sv">${fmt18(v.debt)} bSunDAI</div></div>
+      <div class="vc-stat"><div class="sk">Max Repay</div><div class="sv">${fmt18(v.maxRepay)} bSunDAI</div></div>
+      <div class="vc-stat"><div class="sk">CR</div><div class="sv" style="color:var(--danger)">${Number(v.ratio) + "%"}</div></div>
+      <div class="vc-stat"><div class="sk">ETH out (base)</div><div class="sv">${ethPrice > 0 ? (Number(ethers.formatUnits(v.debt,18)) / ethPrice * (1 + Number(v.bonusBps)/10000)).toFixed(4) : "—"} ETH</div></div>
+    </div>
+    <div class="vc-actions">
+      ${spCanCover ? `<button class="btn-sp" onclick="doLiquidateSP('${v.addr}')">Liquidate via Stability Pool — no capital needed</button>` : ''}
+      <div class="action-input">
+        <input type="number" id="liq-amt-${v.addr}" placeholder="bSunDAI to repay" min="0" step="any">
+        <button class="btn-liq" onclick="doLiquidate('${v.addr}')">Liquidate Manually ${bonusPct}%</button>
+      </div>
+      <button class="btn-secondary btn" style="padding:6px 14px;font-size:.8rem"
+        onclick="document.getElementById('liq-amt-${v.addr}').value = ethers.formatUnits(${v.debt}n, 18)">
+        Max
+      </button>
+    </div>`;
   return div;
 }
 
-function buildLiqActions(v) {
-  if (v.isZombie) {
-    return `<div class="vr-actions"><button class="vr-btn zombie" onclick="doClearBadDebt('${v.address}')">Clear Bad Debt (Free Collateral)</button></div>`;
-  }
-  const bps = Number(v.bonusBps || 0n);
-  const bonusStr = bps > 0 ? (bps/100).toFixed(1) + '% bonus' : '';
-  return `<div class="vr-actions"><button class="vr-btn liq" onclick='openLiqModal(${JSON.stringify({address:v.address, debt:v.debt.toString(), maxRepay:v.maxRepay.toString(), bonusBps:v.bonusBps.toString(), auctionElapsed:v.auctionElapsed.toString(), ratio:v.ratio.toString()})})'>⚡ Liquidate ${bonusStr}</button></div>`;
+function buildRedeemCard(v) {
+  const div = document.createElement("div");
+  div.className = "vault-card redeemable";
+  const ratio = Number(v.ratio);
+  const crStr = ratio > 9999 ? "∞" : ratio + "%";
+  const debtNum = Number(ethers.formatUnits(v.debt, 18));
+  const ethOut = ethPrice > 0 ? (debtNum / ethPrice * 0.995).toFixed(4) : "—";
+
+  div.innerHTML = `
+    <div class="vc-top">
+      <span class="vc-addr">${shortAddr(v.addr)}</span>
+      <span class="vc-cr ${crClass(v.ratio)}">${crStr} CR</span>
+      <span class="vc-tag redeem">Redeemable</span>
+    </div>
+    <div class="vc-grid">
+      <div class="vc-stat"><div class="sk">Vault Debt</div><div class="sv">${fmt18(v.debt)} bSunDAI</div></div>
+      <div class="vc-stat"><div class="sk">Collateral</div><div class="sv">${fmt18(v.collateral)} ETH</div></div>
+      <div class="vc-stat"><div class="sk">ETH out (full)</div><div class="sv">${ethOut} ETH</div></div>
+      <div class="vc-stat"><div class="sk">Fee</div><div class="sv">0.5% to owner</div></div>
+    </div>
+    <div class="vc-actions">
+      <div class="action-input">
+        <input type="number" id="redeem-amt-${v.addr}" placeholder="bSunDAI to burn (min 100)" min="100" step="any">
+        <button class="btn-redeem" onclick="doRedeem('${v.addr}', '${v.debt}')">Redeem</button>
+      </div>
+      <button class="btn-secondary btn" style="padding:6px 14px;font-size:.8rem"
+        onclick="document.getElementById('redeem-amt-${v.addr}').value = Math.min(Number(ethers.formatUnits(${v.debt}n,18)), Number(ethers.formatUnits(userTokenBalance,18))).toFixed(2)">
+        Max
+      </button>
+    </div>`;
+  return div;
 }
 
-function buildRedeemActions(v) {
-  return `<div class="vr-actions"><button class="vr-btn redeem" onclick='openRedeemModal(${JSON.stringify({address:v.address, debt:v.debt.toString(), price:v.price.toString()})})'>Redeem Against</button></div>`;
+function buildAllCard(v) {
+  const div = document.createElement("div");
+  const ratio = Number(v.ratio);
+  div.className = "vault-card" + (v.isZombie ? " zombie" : v.canLiquidate ? " liquidatable" : "");
+  const status = v.isZombie ? "Underwater" : v.canLiquidate ? "Liquidatable" :
+                 ratio < 150 ? "At Risk" : "Safe";
+  const statusCls = v.isZombie || v.canLiquidate ? "danger" : ratio < 150 ? "warn" : "safe";
+  div.innerHTML = `
+    <div class="vc-top">
+      <span class="vc-addr">${shortAddr(v.addr)}</span>
+      <span class="vc-cr ${statusCls}">${status}</span>
+      <span style="font-family:monospace;font-size:.82rem;color:${statusCls==="safe"?"var(--safe)":statusCls==="warn"?"var(--warn)":"var(--danger)"}">${ratio > 9999 ? "∞" : ratio + "%"} CR</span>
+    </div>
+    <div class="vc-grid">
+      <div class="vc-stat"><div class="sk">Collateral</div><div class="sv">${fmt18(v.collateral)} ETH</div></div>
+      <div class="vc-stat"><div class="sk">Debt</div><div class="sv">${fmt18(v.debt)} bSunDAI</div></div>
+      <div class="vc-stat"><div class="sk">Coll Value</div><div class="sv">$${(Number(ethers.formatUnits(v.collUSD,18))).toLocaleString("en",{maximumFractionDigits:2})}</div></div>
+      <div class="vc-stat"><div class="sk">Bonus</div><div class="sv">${v.canLiquidate ? (Number(v.bonusBps)/100).toFixed(1)+"%" : "—"}</div></div>
+    </div>`;
+  return div;
 }
 
-/* ─── LIQUIDATE MODAL ─── */
-function openLiqModal(v) {
-  if (!v) return;
-  currentLiq = v;
-  const debt = typeof v.debt === 'string' ? BigInt(v.debt) : v.debt;
-  const bonusBps = typeof v.bonusBps === 'string' ? BigInt(v.bonusBps) : (v.bonusBps || 0n);
-  const auctionElapsed = typeof v.auctionElapsed === 'string' ? BigInt(v.auctionElapsed) : (v.auctionElapsed || 0n);
-  const ratio = typeof v.ratio === 'string' ? BigInt(v.ratio) : (v.ratio || 0n);
-
-  setText('liqModalAddr', v.address);
-  setText('liqDebt', (Number(ethers.formatEther(debt))).toFixed(2) + ' bSUNDAI');
-  setText('liqCR', Number(ratio) + '%');
-  setText('liqMaxRepay', (Number(ethers.formatEther(debt))).toFixed(2) + ' bSUNDAI');
-  const bonusPct = Number(bonusBps) / 100;
-  setText('liqBonusPct', bonusPct.toFixed(1) + '%');
-  setText('liqBonusVal', bonusPct.toFixed(1) + '%');
-
-  const elapsedSec = Number(auctionElapsed);
-  const auctionDur = 3 * 3600;
-  const pct = Math.min(100, (elapsedSec / auctionDur) * 100);
-  document.getElementById('liqBonusFill').style.width = (100 - pct) + '%';
-  const mins = Math.floor(elapsedSec / 60), secs = elapsedSec % 60;
-  setText('liqElapsedText', mins + 'm ' + secs + 's elapsed');
-
-  document.getElementById('liqAmount').value = '';
-  setText('liqETHOut', '—');
-  setText('liqBonusOut', '—');
-  document.getElementById('liqModal').classList.add('open');
-}
-function closeLiqModal() { document.getElementById('liqModal').classList.remove('open'); currentLiq = null; }
-
-function previewLiq() {
-  const amt = parseFloat(document.getElementById('liqAmount').value) || 0;
-  if (amt <= 0 || ethPrice <= 0) { setText('liqETHOut', '—'); setText('liqBonusOut', '—'); return; }
-  const baseETH = amt / ethPrice;
-  const bonusBps = currentLiq ? Number(typeof currentLiq.bonusBps === 'string' ? BigInt(currentLiq.bonusBps) : currentLiq.bonusBps) : 0;
-  const bonusETH = baseETH * bonusBps / 10000;
-  setText('liqETHOut', (baseETH + bonusETH).toFixed(6) + ' ETH');
-  setText('liqBonusOut', bonusETH.toFixed(6) + ' ETH');
-}
-
-function fillLiqMax() {
-  if (!currentLiq) return;
-  const debt = typeof currentLiq.debt === 'string' ? BigInt(currentLiq.debt) : currentLiq.debt;
-  document.getElementById('liqAmount').value = Number(ethers.formatEther(debt)).toFixed(2);
-  previewLiq();
-}
-
-async function doLiquidate() {
-  if (!signer || !currentLiq) return toast("No vault selected", "err");
-  const amtStr = document.getElementById('liqAmount').value.trim();
-  if (!amtStr || parseFloat(amtStr) <= 0) return toast("Enter amount", "err");
+// ── LOOKUP ────────────────────────────────────────────────────────────────────
+async function lookupVault() {
+  if (!vault) return showStatus("Connect wallet first","err");
+  const addr = document.getElementById("lookupAddr").value.trim();
+  if (!ethers.isAddress(addr)) return showStatus("Invalid address","err");
   try {
-    const val = ethers.parseEther(amtStr);
-    const allowance = await tokenC.allowance(userAddr, VAULT_ADDR);
-    if (allowance < val) {
-      toast("Approving bSUNDAI…", "info");
-      const tx = await tokenC.approve(VAULT_ADDR, val * 10n);
-      await tx.wait();
-      toast("Approved ✓", "ok");
-    }
-    toast("Liquidating…", "info");
-    const tx = await vaultC.liquidate(currentLiq.address, val);
-    await tx.wait();
-    toast("Liquidated ✓", "ok");
-    closeLiqModal();
-    await refreshBar();
-  } catch(e) { toast(parseRevert(e), "err"); }
-}
-
-/* ─── REDEEM MODAL ─── */
-function openRedeemModal(v) {
-  if (!v) return;
-  currentRedeem = v;
-  const debt = typeof v.debt === 'string' ? BigInt(v.debt) : v.debt;
-  const price = typeof v.price === 'string' ? BigInt(v.price) : (v.price || 0n);
-
-  setText('redeemModalAddr', v.address);
-  setText('redeemVaultDebt', (Number(ethers.formatEther(debt))).toFixed(2) + ' bSUNDAI');
-  const priceUSD = Number(price) / 1e18;
-  setText('redeemETHPrice', priceUSD > 0 ? '$' + priceUSD.toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}) : '—');
-  setText('redeemUserBal', (Number(ethers.formatEther(userTokenBalance))).toFixed(2) + ' bSUNDAI');
-
-  document.getElementById('redeemAmount').value = '';
-  setText('redeemETHOut', '—');
-  setText('redeemUSDOut', '—');
-  setText('redeemFee', '—');
-  document.getElementById('redeemModal').classList.add('open');
-}
-function closeRedeemModal() { document.getElementById('redeemModal').classList.remove('open'); currentRedeem = null; }
-
-function previewRedeem() {
-  const amt = parseFloat(document.getElementById('redeemAmount').value) || 0;
-  if (amt <= 0 || ethPrice <= 0) { setText('redeemETHOut','—'); setText('redeemUSDOut','—'); setText('redeemFee','—'); return; }
-  const gross = amt / ethPrice;
-  const fee   = gross * 0.005;
-  const net   = gross - fee;
-  setText('redeemETHOut', net.toFixed(6) + ' ETH');
-  setText('redeemUSDOut', '$' + (net * ethPrice).toFixed(2));
-  setText('redeemFee', fee.toFixed(6) + ' ETH (0.5%)');
-}
-
-function fillRedeemMax() {
-  if (!currentRedeem) return;
-  const debt = typeof currentRedeem.debt === 'string' ? BigInt(currentRedeem.debt) : currentRedeem.debt;
-  const maxAmt = debt < userTokenBalance ? debt : userTokenBalance;
-  document.getElementById('redeemAmount').value = Math.max(100, Number(ethers.formatEther(maxAmt))).toFixed(2);
-  previewRedeem();
-}
-
-async function doRedeem() {
-  if (!signer || !currentRedeem) return toast("No vault selected", "err");
-  const amtStr = document.getElementById('redeemAmount').value.trim();
-  if (!amtStr || parseFloat(amtStr) < 100) return toast("Minimum 100 bSUNDAI", "err");
-  try {
-    const val = ethers.parseEther(amtStr);
-    const allowance = await tokenC.allowance(userAddr, VAULT_ADDR);
-    if (allowance < val) {
-      toast("Approving bSUNDAI…", "info");
-      const tx = await tokenC.approve(VAULT_ADDR, val * 10n);
-      await tx.wait();
-      toast("Approved ✓", "ok");
-    }
-    toast("Redeeming…", "info");
-    const tx = await vaultC.redeem(val, currentRedeem.address);
-    await tx.wait();
-    toast("Redeemed! ETH received ✓", "ok");
-    closeRedeemModal();
-    await refreshBar();
-  } catch(e) { toast(parseRevert(e), "err"); }
-}
-
-/* ─── LOOKUP ─── */
-async function doLookup() {
-  if (!vaultC) return toast("Connect wallet first", "err");
-  const addr = document.getElementById('lookupInput').value.trim();
-  if (!ethers.isAddress(addr)) return toast("Enter valid address", "err");
-  try {
-    toast("Loading…", "info");
     const [info, liqInfo, repayNeeded, isZombie] = await Promise.all([
-      vaultC.vaultInfo(addr),
-      vaultC.liquidationInfo(addr),
-      vaultC.repayToHealth(addr),
-      vaultC.isZombieVault(addr)
+      vault.vaultInfo(addr),
+      vault.liquidationInfo(addr),
+      vault.repayToHealth(addr),
+      vault.isZombieVault(addr),
     ]);
-
     const ratio = Number(info.ratio);
-    const ratioStr = ratio > 99999 ? '∞' : ratio + '%';
-
-    setText('lrColl', (Number(ethers.formatEther(info.collateral))).toFixed(4) + ' ETH');
-    setText('lrDebt', (Number(ethers.formatEther(info.debt))).toFixed(2) + ' bSUNDAI');
-    setText('lrCollUSD', '$' + (Number(ethers.formatEther(info.collateralUSD))).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}));
-    document.getElementById('lrCR').textContent = ratioStr;
-    document.getElementById('lrCR').className = 'lr-val ' + (ratio < 110 ? 'risk' : ratio < 150 ? 'warn' : 'safe');
-    setText('lrMintable', (Number(ethers.formatEther(info.mintable))).toFixed(2) + ' bSUNDAI');
-    setText('lrOracle', info.oracleHealthy ? '✓ Fresh' : '⚠ Stale');
-    setText('lrBonus', liqInfo.canLiquidate ? (Number(liqInfo.bonusBps)/100).toFixed(1) + '%' : '—');
-    setText('lrRepayNeeded', (Number(ethers.formatEther(repayNeeded))).toFixed(2) + ' bSUNDAI');
-    setText('lrZombie', isZombie ? '⚠ Yes' : 'No');
-
-    currentLookup = {
-      address: addr,
-      debt: info.debt.toString(),
-      price: info.price.toString(),
-      bonusBps: liqInfo.bonusBps.toString(),
-      auctionElapsed: liqInfo.auctionElapsed.toString(),
-      ratio: info.ratio.toString(),
-      maxRepay: liqInfo.maxRepay.toString()
-    };
-
-    document.getElementById('lrLiqBtn').style.display = liqInfo.canLiquidate ? 'block' : 'none';
-    document.getElementById('lrRedeemBtn').style.display = info.debt > 0n ? 'block' : 'none';
-    document.getElementById('lrZombieBtn').style.display = isZombie ? 'block' : 'none';
-    document.getElementById('lookupResult').style.display = 'block';
-    toast("", "");
-  } catch(e) { toast(parseRevert(e), "err"); }
+    const crStr = ratio > 9999 ? "∞" : ratio + "%";
+    const bonusPct = liqInfo.canLiquidate ? (Number(liqInfo.bonusBps)/100).toFixed(1) + "%" : "—";
+    const result = document.getElementById("lookupResult");
+    result.style.display = "block";
+    result.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+        <div class="vc-stat"><div class="sk">Collateral</div><div class="sv">${fmt18(info.collateral)} ETH</div></div>
+        <div class="vc-stat"><div class="sk">Debt</div><div class="sv">${fmt18(info.debt)} bSunDAI</div></div>
+        <div class="vc-stat"><div class="sk">CR</div><div class="sv" style="color:var(--${crClass(info.ratio)})">${crStr}</div></div>
+        <div class="vc-stat"><div class="sk">Coll Value</div><div class="sv">$${(Number(ethers.formatUnits(info.collateralUSD,18))).toFixed(2)}</div></div>
+        <div class="vc-stat"><div class="sk">Liq Bonus</div><div class="sv">${bonusPct}</div></div>
+        <div class="vc-stat"><div class="sk">Repay to Safe</div><div class="sv">${Number(repayNeeded) > 0 ? fmt18(repayNeeded) + " bSunDAI" : "Safe"}</div></div>
+        <div class="vc-stat"><div class="sk">Oracle</div><div class="sv">${info.oracleHealthy ? "✓ Fresh" : "⚠ Stale"}</div></div>
+        <div class="vc-stat"><div class="sk">Zombie?</div><div class="sv">${isZombie ? "⚠ Yes" : "No"}</div></div>
+        <div class="vc-stat"><div class="sk">Mintable</div><div class="sv">${fmt18(info.mintable)} bSunDAI</div></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${liqInfo.canLiquidate && spTotal > ZERO ? `<button class="btn-sp" onclick="doLiquidateSP('${addr}')">Liquidate via Stability Pool — no capital needed</button>` : ''}
+        ${liqInfo.canLiquidate ? `<div class="action-input"><input type="number" id="lookup-liq-amt" placeholder="bSunDAI to repay" min="0" step="any"><button class="btn-liq" onclick="doLiquidate('${addr}', 'lookup-liq-amt')">Liquidate Manually</button></div>` : ''}
+        ${info.debt > ZERO ? `<div class="action-input"><input type="number" id="lookup-redeem-amt" placeholder="bSunDAI to burn (min 100)" min="100" step="any"><button class="btn-redeem" onclick="doRedeem('${addr}', '${info.debt}', 'lookup-redeem-amt')">Redeem</button></div>` : ''}
+        ${isZombie ? `<div class="action-input"><input type="number" id="lookup-baddebt-amt" placeholder="bSunDAI to repay" min="0" step="any"><button class="btn-clear" onclick="doClearBadDebt('${addr}', 'lookup-baddebt-amt')">Clear (pro-rata, no bonus)</button></div>` : ''}
+      </div>`;
+  } catch(e) { showStatus(e.reason || e.message || "Lookup failed","err"); }
 }
 
-/* ─── CLEAR BAD DEBT ─── */
-async function doClearBadDebt(addr) {
-  if (!signer) return toast("Connect wallet first", "err");
-  if (!addr || !ethers.isAddress(addr)) return toast("Invalid address", "err");
-  try {
-    toast("Clearing bad debt…", "info");
-    const tx = await vaultC.clearBadDebt(addr);
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+async function ensureApproval(amount) {
+  const allowance = await token.allowance(userAddr, VAULT_ADDR);
+  if (allowance < amount) {
+    showStatus("Approving bSunDAI…","wait");
+    const tx = await token.approve(VAULT_ADDR, amount * 10n);
+    showStatus("Pending approval: " + tx.hash.slice(0,10) + "…","wait");
     await tx.wait();
-    toast("Bad debt cleared. Collateral received ✓", "ok");
-    await refreshBar();
-  } catch(e) { toast(parseRevert(e), "err"); }
-}
-
-/* ─── TABS ─── */
-function switchTab(name) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  const panel = document.getElementById('tab-' + name);
-  if (panel) panel.classList.add('active');
-  const order = ['liquidate','redeem','allvaults','lookup'];
-  const idx = order.indexOf(name);
-  document.querySelectorAll('.tab')[idx]?.classList.add('active');
-}
-
-/* ─── HELPERS ─── */
-function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
-function parseRevert(e) {
-  const msg = e?.info?.error?.message || e?.reason || e?.message || '';
-  const m = msg.match(/reason="([^"]+)"/)?.[1] || msg.match(/reverted: (.+)/)?.[1] || msg.split('\n')[0];
-  return m ? m.slice(0, 120) : "Transaction failed";
-}
-let toastTimer;
-function toast(msg, type='info') {
-  const el = document.getElementById('toast');
-  if (!msg) { el.style.display='none'; return; }
-  el.textContent = msg;
-  el.className = 'toast ' + type;
-  el.style.display = 'inline-block';
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.style.display='none'; }, 5000);
-}
-
-/* ─── CANVAS ─── */
-function initCanvas() {
-  const canvas = document.getElementById('bg-canvas');
-  const ctx = canvas.getContext('2d');
-  let W, H, particles = [];
-  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
-  function spawn() {
-    particles = [];
-    const n = Math.floor(W * H / 20000);
-    for (let i = 0; i < n; i++) {
-      particles.push({ x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.2+0.2, a:Math.random()*Math.PI*2, speed:Math.random()*0.12+0.02, drift:(Math.random()-0.5)*0.006, op:Math.random()*0.4+0.1, ph:Math.random()*Math.PI*2, gold:Math.random()>0.45 });
-    }
+    showStatus("Approved ✓","ok");
   }
-  let t=0;
-  function draw() {
-    ctx.clearRect(0,0,W,H);
-    const grad = ctx.createRadialGradient(W*0.8,H*0.9,0,W*0.8,H*0.9,Math.min(W,H)*0.6);
-    grad.addColorStop(0,'rgba(255,100,0,0.035)'); grad.addColorStop(1,'transparent');
-    ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
-    t+=0.007;
-    particles.forEach(p=>{
-      p.x+=Math.cos(p.a)*p.speed; p.y+=Math.sin(p.a)*p.speed*0.35; p.a+=p.drift;
-      if(p.x<-5)p.x=W+5; if(p.x>W+5)p.x=-5; if(p.y<-5)p.y=H+5; if(p.y>H+5)p.y=-5;
-      const op = p.op + Math.sin(t+p.ph)*0.1;
-      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle = p.gold ? `rgba(255,195,40,${op})` : `rgba(255,120,0,${op*0.55})`;
-      ctx.fill();
-    });
-    requestAnimationFrame(draw);
-  }
-  resize(); spawn(); draw();
-  window.addEventListener('resize',()=>{ resize(); spawn(); });
 }
 
-/* ─── INIT ─── */
-window.addEventListener('DOMContentLoaded', () => {
-  initCanvas();
-  loadABIs().catch(()=>{});
+async function doLiquidate(targetAddr, inputId) {
+  if (!signer) return showStatus("Connect wallet first","err");
+  const id = inputId || ("liq-amt-" + targetAddr);
+  const input = document.getElementById(id);
+  const amt = input?.value;
+  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter amount to repay","err");
+  try {
+    const val = ethers.parseUnits(amt, 18);
+    await ensureApproval(val);
+    showStatus("Liquidating…","wait");
+    const tx = await vault.liquidate(targetAddr, val);
+    showStatus("Pending: " + tx.hash.slice(0,10) + "…","wait");
+    await tx.wait();
+    showStatus("Liquidation successful. ETH sent to you.","ok");
+    await refreshOracle();
+  } catch(e) { showStatus(e.reason || e.message || "Failed","err"); }
+}
+
+async function doLiquidateSP(targetAddr) {
+  if (!signer) return showStatus("Connect wallet first","err");
+  try {
+    showStatus("Liquidating via Stability Pool…","wait");
+    const tx = await vault.liquidateFromStabilityPool(targetAddr);
+    showStatus("Pending: " + tx.hash.slice(0,10) + "…","wait");
+    await tx.wait();
+    showStatus("Liquidated via Stability Pool. Tip sent to you, principal absorbed by the pool.","ok");
+    await refreshOracle();
+  } catch(e) { showStatus(e.reason || e.message || "Failed","err"); }
+}
+
+async function doRedeem(targetAddr, debtStr, inputId) {
+  if (!signer) return showStatus("Connect wallet first","err");
+  const id = inputId || ("redeem-amt-" + targetAddr);
+  const input = document.getElementById(id);
+  const amt = input?.value;
+  if (!amt || parseFloat(amt) < 100) return showStatus("Minimum 100 bSunDAI","err");
+  try {
+    const val = ethers.parseUnits(amt, 18);
+    await ensureApproval(val);
+    showStatus("Redeeming…","wait");
+    const tx = await vault.redeem(val, targetAddr);
+    showStatus("Pending: " + tx.hash.slice(0,10) + "…","wait");
+    await tx.wait();
+    showStatus("Redeemed! ETH received.","ok");
+    await refreshOracle();
+  } catch(e) { showStatus(e.reason || e.message || "Failed","err"); }
+}
+
+async function doClearBadDebt(targetAddr, inputId) {
+  if (!signer) return showStatus("Connect wallet first","err");
+  const id = inputId || ("baddebt-amt-" + targetAddr);
+  const input = document.getElementById(id);
+  const amt = input?.value;
+  if (!amt || parseFloat(amt) <= 0) return showStatus("Enter amount to repay","err");
+  try {
+    const val = ethers.parseUnits(amt, 18);
+    await ensureApproval(val);
+    showStatus("Clearing bad debt…","wait");
+    const tx = await vault.clearBadDebt(targetAddr, val);
+    showStatus("Pending: " + tx.hash.slice(0,10) + "…","wait");
+    await tx.wait();
+    showStatus("Bad debt cleared — collateral received pro-rata.","ok");
+    await refreshOracle();
+  } catch(e) { showStatus(e.reason || e.message || "Failed","err"); }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  loadABIs().catch(() => {});
   if (window.ethereum) {
-    window.ethereum.on('accountsChanged', () => location.reload());
-    window.ethereum.on('chainChanged', () => location.reload());
+    window.ethereum.on("accountsChanged", () => location.reload());
+    window.ethereum.on("chainChanged",    () => location.reload());
   }
 });
 </script>
